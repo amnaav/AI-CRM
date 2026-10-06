@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'sales:invoice_list' %}" class="btn btn-outline-secondary shadow-sm">
+    <i class="bi bi-receipt me-1"></i> View Invoices
+</a>
+<a href="{% url 'sales:sale_list' %}" class="btn btn-outline-primary shadow-sm">
+    <i class="bi bi-cart me-1"></i> View Sales
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters Bar Card -->
+<div class="crm-card mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search payment #, invoice, customer, reference...">
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-md-3">
+            <select name="method" class="form-select">
+                <option value="">All Payment Methods</option>
+                {% for code, name in method_choices %}
+                    <option value="{{ code }}" {% if method_filter == code %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-sm-6 col-md-3">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                {% for code, name in status_choices %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-12 col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary w-100" title="Filter">
+                <i class="bi bi-funnel-fill"></i> Filter
+            </button>
+            {% if search_query or method_filter or status_filter %}
+                <a href="{% url 'sales:payment_list' %}" class="btn btn-outline-secondary" title="Clear">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Payments Table Card -->
+<div class="crm-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th class="ps-4">Payment #</th>
+                    <th>Date & Time</th>
+                    <th>Invoice #</th>
+                    <th>Customer</th>
+                    <th>Method</th>
+                    <th>Reference</th>
+                    <th class="text-end">Amount</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td class="ps-4">
+                        <a href="{% url 'sales:payment_detail' p.pk %}" class="fw-bold text-primary text-decoration-none">
+                            {{ p.payment_number }}
+                        </a>
+                    </td>
+                    <td class="text-nowrap text-secondary small">
+                        {{ p.payment_date|date:"d M, Y H:i" }}
+                    </td>
+                    <td>
+                        <a href="{% url 'sales:invoice_detail' p.invoice.pk %}" class="text-decoration-none fw-semibold">
+                            {{ p.invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td>
+                        <div class="fw-semibold text-dark">{{ p.customer.user.full_name|default:p.customer.user.username }}</div>
+                        {% if p.customer.company %}
+                        <div class="small text-muted">{{ p.customer.company }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ p.get_payment_method_display }}</span>
+                    </td>
+                    <td>
+                        {% if p.transaction_reference %}
+                            <code class="text-secondary small">{{ p.transaction_reference }}</code>
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold text-nowrap {% if p.is_reversed %}text-muted text-decoration-line-through{% else %}text-success{% endif %}">
+                        ₹{{ p.amount|floatformat:2 }}
+                    </td>
+                    <td class="text-center">
+                        {% if p.is_reversed or p.payment_status == 'REVERSED' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Reversed</span>
+                        {% elif p.payment_status == 'COMPLETED' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Completed</span>
+                        {% elif p.payment_status == 'PENDING' %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Pending</span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary px-2 py-1">{{ p.get_payment_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4 text-nowrap">
+                        <a href="{% url 'sales:payment_detail' p.pk %}" class="btn btn-sm btn-outline-primary" title="Receipt">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'sales:payment_receipt_print' p.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary ms-1" title="Print Receipt">
+                            <i class="bi bi-printer"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center py-5 text-muted">
+                        <i class="bi bi-credit-card-2-front fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                        <p class="mb-0 fw-semibold">No payment transactions found.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between py-3 px-4">
+        <span class="small text-muted">
+            Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} payments
+        </span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if method_filter %}&method={{ method_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">&laquo;</a>
+                </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if method_filter %}&method={{ method_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if method_filter %}&method={{ method_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">&raquo;</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

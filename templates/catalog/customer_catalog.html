@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Catalog | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<!-- Welcome & Search Banner -->
+<div class="crm-card mb-4 bg-primary-subtle border-0">
+    <div class="row align-items-center py-2">
+        <div class="col-md-7">
+            <h3 class="fw-bold text-dark mb-1"><i class="bi bi-shop me-2 text-primary"></i>Product & Service Catalog</h3>
+            <p class="text-secondary mb-0">Explore our enterprise products, solutions, and consulting offerings.</p>
+        </div>
+        <div class="col-md-5 mt-3 mt-md-0">
+            <form method="get" class="d-flex gap-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search catalog...">
+                </div>
+                <button type="submit" class="btn btn-primary px-3">Search</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="crm-card mb-4 py-3">
+    <form method="get" class="row g-2 align-items-center">
+        {% if search_query %}
+        <input type="hidden" name="q" value="{{ search_query }}">
+        {% endif %}
+        <div class="col-md-4">
+            <select name="category" class="form-select" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.category_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-4">
+            <select name="type" class="form-select" onchange="this.form.submit()">
+                <option value="">All Types (Products & Services)</option>
+                <option value="PRODUCT" {% if type_filter == 'PRODUCT' %}selected{% endif %}>Products Only</option>
+                <option value="SERVICE" {% if type_filter == 'SERVICE' %}selected{% endif %}>Services Only</option>
+            </select>
+        </div>
+        <div class="col-md-4 d-flex justify-content-end">
+            {% if search_query or category_filter or type_filter %}
+            <a href="{% url 'catalog:customer_catalog' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-x-lg me-1"></i> Clear Filters
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Product Cards Grid -->
+<div class="row g-4 mb-4">
+    {% for item in items %}
+    <div class="col-sm-6 col-lg-4 col-xl-3">
+        <div class="crm-card h-100 p-0 overflow-hidden d-flex flex-column border shadow-sm hover-shadow transition">
+            <!-- Image Area -->
+            <div class="bg-light text-center position-relative d-flex align-items-center justify-content-center" style="height: 180px;">
+                {% if item.image %}
+                <img src="{{ item.image.url }}" alt="{{ item.product_name }}" class="w-100 h-100 object-fit-cover">
+                {% else %}
+                <div class="text-muted opacity-50 text-center">
+                    <i class="bi {% if item.item_type == 'PRODUCT' %}bi-box-seam{% else %}bi-briefcase{% endif %} display-4"></i>
+                </div>
+                {% endif %}
+
+                <!-- Type Badge Overlay -->
+                <span class="position-absolute top-0 start-0 m-2 badge {% if item.item_type == 'PRODUCT' %}bg-info-subtle text-info-emphasis border border-info-subtle{% else %}bg-primary-subtle text-primary border border-primary-subtle{% endif %}">
+                    {{ item.get_item_type_display }}
+                </span>
+            </div>
+
+            <!-- Card Body -->
+            <div class="p-3 d-flex flex-column flex-grow-1">
+                <div class="text-muted small mb-1">{{ item.category.category_name }}</div>
+                <h6 class="fw-bold text-dark mb-2 text-truncate" title="{{ item.product_name }}">
+                    <a href="{% url 'catalog:customer_product_detail' pk=item.pk %}" class="text-decoration-none text-dark hover-primary">
+                        {{ item.product_name }}
+                    </a>
+                </h6>
+                <p class="text-muted small text-truncate-2 mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    {{ item.description|default:"High quality catalog solution." }}
+                </p>
+
+                <div class="d-flex align-items-center justify-content-between pt-2 border-top mt-auto">
+                    <div class="h5 fw-bold text-primary mb-0">₹{{ item.unit_price }}</div>
+                    {% if item.item_type == 'PRODUCT' %}
+                        {% if item.is_out_of_stock %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Out of Stock</span>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Available</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge bg-light text-dark border">Available</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Card Footer -->
+            <div class="p-2 px-3 bg-light border-top text-end">
+                <a href="{% url 'catalog:customer_product_detail' pk=item.pk %}" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-info-circle me-1"></i> View Details
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="crm-card text-center py-5">
+            <i class="bi bi-inbox display-5 text-muted opacity-50 mb-3 d-block"></i>
+            <h5>No items found</h5>
+            <p class="text-muted small mb-0">There are no items matching your criteria in the catalog at this time.</p>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="d-flex justify-content-center mb-4">
+    <nav aria-label="Customer catalog pagination">
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}">&laquo;</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}">&lsaquo;</a></li>
+            {% endif %}
+
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}">&rsaquo;</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}">&raquo;</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to Invoice
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-7">
+        <!-- Invoice Details Snapshot -->
+        <div class="crm-card mb-4 bg-light border-0 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <span class="text-muted small text-uppercase fw-semibold">Receiving Payment For</span>
+                    <h5 class="fw-bold text-dark mb-0">{{ invoice.invoice_number }}</h5>
+                </div>
+                <span class="badge bg-primary fs-6 px-3 py-1">Due: ₹{{ invoice.balance_amount|floatformat:2 }}</span>
+            </div>
+            <div class="row g-2 small text-secondary">
+                <div class="col-sm-6">
+                    <div>Customer: <strong class="text-dark">{{ invoice.customer_name }}</strong></div>
+                    <div>Order Ref: <strong class="text-dark">{{ invoice.sale.sale_number }}</strong></div>
+                </div>
+                <div class="col-sm-6 text-sm-end">
+                    <div>Total Invoiced: <strong>₹{{ invoice.total_amount|floatformat:2 }}</strong></div>
+                    <div>Already Paid: <strong class="text-success">₹{{ invoice.paid_amount|floatformat:2 }}</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Entry Card -->
+        <div class="crm-card">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                <i class="bi bi-cash-coin text-success me-2"></i>Record New Payment
+            </h5>
+
+            <form method="post" id="paymentEntryForm" novalidate>
+                {% csrf_token %}
+                {{ form.idempotency_key }}
+
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Payment Amount (₹) <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light fw-bold">₹</span>
+                        {{ form.amount }}
+                    </div>
+                    {% if form.amount.help_text %}
+                        <div class="form-text text-muted">{{ form.amount.help_text }}</div>
+                    {% endif %}
+                    {% if form.amount.errors %}
+                        <div class="text-danger small mt-1">{{ form.amount.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Payment Method <span class="text-danger">*</span></label>
+                        {{ form.payment_method }}
+                        {% if form.payment_method.errors %}
+                            <div class="text-danger small mt-1">{{ form.payment_method.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold" id="lbl-reference">Transaction Reference / UTR</label>
+                        {{ form.transaction_reference }}
+                        <div class="form-text small" id="hint-reference">Required for non-cash payment methods.</div>
+                        {% if form.transaction_reference.errors %}
+                            <div class="text-danger small mt-1">{{ form.transaction_reference.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Internal Payment Notes</label>
+                    {{ form.notes }}
+                </div>
+
+                <div class="alert alert-warning small mb-4">
+                    <i class="bi bi-shield-lock-fill me-1"></i> <strong>Security & Data Integrity Policy:</strong>
+                    Never enter credit card numbers, CVVs, UPI PINs, or sensitive banking passwords. Only store public payment verification reference identifiers (e.g., Bank UTR or Cheque Number).
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success btn-lg shadow-sm" id="btn-submit-payment">
+                        <i class="bi bi-check-circle me-1"></i> Process & Record Payment
+                    </button>
+                    <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const methodSelect = document.getElementById('id_payment_method');
+    const refInput = document.getElementById('id_transaction_reference');
+    const refHint = document.getElementById('hint-reference');
+    const form = document.getElementById('paymentEntryForm');
+    const submitBtn = document.getElementById('btn-submit-payment');
+
+    function updateRefRequirement() {
+        if (!methodSelect || !refInput) return;
+        const val = methodSelect.value;
+        if (val === 'CASH') {
+            refInput.required = false;
+            refHint.textContent = 'Optional for physical cash transactions.';
+        } else if (val === 'CHEQUE') {
+            refInput.required = true;
+            refHint.textContent = 'Mandatory: Enter 6-digit cheque number and issuing bank.';
+        } else if (val === 'UPI') {
+            refInput.required = true;
+            refHint.textContent = 'Mandatory: Enter 12-digit UPI transaction UTR.';
+        } else {
+            refInput.required = true;
+            refHint.textContent = 'Mandatory: Enter bank reference / UTR / transaction ID.';
+        }
+    }
+
+    if (methodSelect) {
+        methodSelect.addEventListener('change', updateRefRequirement);
+        updateRefRequirement();
+    }
+
+    if (form && submitBtn) {
+        form.addEventListener('submit', function() {
+            if (!submitBtn.disabled) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processing Transaction...';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

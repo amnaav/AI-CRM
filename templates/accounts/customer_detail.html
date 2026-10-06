@@ -1,0 +1,327 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ customer.user.full_name }} | Customers | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'accounts:customer_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to Directory
+</a>
+<a href="{% url 'accounts:customer_edit' customer.pk %}" class="btn btn-primary">
+    <i class="bi bi-pencil me-1"></i> Edit Customer
+</a>
+{% if user.is_admin and customer.user != user %}
+    {% if customer.user.status == 'ACTIVE' %}
+    <form method="post" action="{% url 'accounts:customer_status' customer.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="INACTIVE">
+        <button type="submit" class="btn btn-outline-warning" data-confirm="Are you sure you want to deactivate customer '{{ customer.user.full_name|escapejs }}'? All CRM records and history will be preserved." data-confirm-title="Deactivate Customer">
+            <i class="bi bi-person-x me-1"></i> Deactivate Customer
+        </button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'accounts:customer_status' customer.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="ACTIVE">
+        <button type="submit" class="btn btn-outline-success" data-confirm="Are you sure you want to activate customer '{{ customer.user.full_name|escapejs }}'?" data-confirm-title="Activate Customer">
+            <i class="bi bi-person-check me-1"></i> Activate Customer
+        </button>
+    </form>
+    {% endif %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Top Customer Identity Card -->
+<div class="crm-card mb-4">
+    <div class="row align-items-center gy-3">
+        <div class="col-md-auto text-center text-md-start">
+            <div class="profile-avatar" style="width: 72px; height: 72px; font-size: 2rem;">
+                {{ customer.user.full_name|default:customer.user.username|slice:":1"|upper }}
+            </div>
+        </div>
+        <div class="col">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h3 class="h4 fw-bold text-dark mb-0">{{ customer.user.full_name }}</h3>
+                <span class="badge bg-light text-dark border font-monospace">{{ customer.customer_code }}</span>
+                <span class="badge {% if customer.customer_type == 'BUSINESS' %}bg-info-subtle text-info-emphasis{% else %}bg-light text-secondary border{% endif %}">
+                    {{ customer.get_customer_type_display }}
+                </span>
+                {% if customer.user.status == 'ACTIVE' %}
+                    <span class="badge badge-status-active"><i class="bi bi-check-circle-fill me-1"></i>Active</span>
+                {% elif customer.user.status == 'LOCKED' %}
+                    <span class="badge badge-status-locked"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+                {% else %}
+                    <span class="badge badge-status-inactive"><i class="bi bi-slash-circle me-1"></i>Inactive</span>
+                {% endif %}
+            </div>
+            <div class="text-secondary small d-flex flex-wrap gap-3">
+                <span><i class="bi bi-envelope text-muted me-1"></i>{{ customer.user.email }}</span>
+                <span><i class="bi bi-telephone text-muted me-1"></i>{{ customer.user.phone|default:"No phone" }}</span>
+                {% if customer.company %}
+                <span><i class="bi bi-building text-muted me-1"></i>{{ customer.company }}</span>
+                {% endif %}
+                <span><i class="bi bi-calendar text-muted me-1"></i>Client Since: {{ customer.created_at|date:"M d, Y" }}</span>
+            </div>
+        </div>
+
+        {% if user.is_admin and customer.user != user %}
+        <!-- Quick Status Switcher Dropdown (Admin only) -->
+        <div class="col-md-auto">
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-shield-check me-1"></i> Change Status
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li>
+                        <form method="post" action="{% url 'accounts:customer_status' customer.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="ACTIVE">
+                            <button type="submit" class="dropdown-item py-2 text-success">
+                                <i class="bi bi-check-circle me-2"></i> Set as Active
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        <form method="post" action="{% url 'accounts:customer_status' customer.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="INACTIVE">
+                            <button type="submit" class="dropdown-item py-2 text-secondary">
+                                <i class="bi bi-slash-circle me-2"></i> Set as Inactive
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        <form method="post" action="{% url 'accounts:customer_status' customer.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="LOCKED">
+                            <button type="submit" class="dropdown-item py-2 text-danger">
+                                <i class="bi bi-lock me-2"></i> Lock Account
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Left Column: Details & Assigned Staff -->
+    <div class="col-lg-4">
+        <!-- Assigned Sales Staff Card -->
+        <div class="crm-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0">Assigned Sales Rep</h5>
+                {% if user.is_admin %}
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#assignStaffModal">
+                    <i class="bi bi-arrow-repeat me-1"></i> Reassign
+                </button>
+                {% endif %}
+            </div>
+            {% if customer.assigned_staff %}
+                <div class="d-flex align-items-center gap-3">
+                    <div class="profile-avatar bg-primary" style="width: 44px; height: 44px;">
+                        {{ customer.assigned_staff.user.full_name|slice:":1"|upper }}
+                    </div>
+                    <div>
+                        <div class="fw-bold text-dark">{{ customer.assigned_staff.user.full_name }}</div>
+                        <div class="text-secondary small">{{ customer.assigned_staff.designation }} ({{ customer.assigned_staff.department }})</div>
+                        <div class="text-muted small"><i class="bi bi-envelope me-1"></i>{{ customer.assigned_staff.user.email }}</div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="text-center py-3 text-muted small">
+                    <i class="bi bi-person-slash fs-2 d-block mb-1 text-secondary opacity-50"></i>
+                    No sales staff currently assigned to this account.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Address & Profile Details -->
+        <div class="crm-card">
+            <h5 class="fw-bold text-dark mb-3">Location & Notes</h5>
+            <div class="small">
+                <div class="mb-2">
+                    <span class="text-muted d-block">Street Address:</span>
+                    <span class="text-dark fw-medium">{{ customer.address|default:"Not specified" }}</span>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <span class="text-muted d-block">City:</span>
+                        <span class="text-dark fw-medium">{{ customer.city|default:"-" }}</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">State:</span>
+                        <span class="text-dark fw-medium">{{ customer.state|default:"-" }}</span>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <span class="text-muted d-block">Postal Code:</span>
+                    <span class="text-dark fw-medium">{{ customer.postal_code|default:"-" }}</span>
+                </div>
+                <div>
+                    <span class="text-muted d-block">Internal Notes:</span>
+                    <div class="p-2 bg-light rounded text-secondary mt-1">
+                        {{ customer.notes|default:"No internal notes recorded."|linebreaksbr }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Business History & Interactions -->
+    <div class="col-lg-8">
+        <!-- Tabs for Related Modules -->
+        <div class="crm-card p-0 overflow-hidden">
+            <ul class="nav nav-tabs px-3 pt-3 bg-light border-bottom" id="customerTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-semibold" id="sales-tab" data-bs-toggle="tab" data-bs-target="#sales-tab-pane" type="button" role="tab">
+                        <i class="bi bi-cart-check me-1"></i> Recent Sales ({{ sales.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="invoices-tab" data-bs-toggle="tab" data-bs-target="#invoices-tab-pane" type="button" role="tab">
+                        <i class="bi bi-receipt me-1"></i> Invoices ({{ invoices.count }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-semibold" id="interactions-tab" data-bs-toggle="tab" data-bs-target="#interactions-tab-pane" type="button" role="tab">
+                        <i class="bi bi-chat-text me-1"></i> Interactions ({{ interactions.count }})
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content p-3" id="customerTabContent">
+                <!-- Sales Tab Pane -->
+                <div class="tab-pane fade show active" id="sales-tab-pane" role="tabpanel" tabindex="0">
+                    {% if sales %}
+                    <div class="table-responsive">
+                        <table class="table table-sm crm-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Date</th>
+                                    <th>Handled By</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in sales %}
+                                <tr>
+                                    <td class="fw-bold font-monospace">{{ s.sale_number }}</td>
+                                    <td>{{ s.sale_date }}</td>
+                                    <td>{{ s.sales_staff.user.full_name }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ s.get_status_display }}</span></td>
+                                    <td class="text-end fw-bold">₹{{ s.net_amount }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted small">
+                        No sales records logged yet for this customer.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Invoices Tab Pane -->
+                <div class="tab-pane fade" id="invoices-tab-pane" role="tabpanel" tabindex="0">
+                    {% if invoices %}
+                    <div class="table-responsive">
+                        <table class="table table-sm crm-table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Due Date</th>
+                                    <th>Total</th>
+                                    <th>Paid</th>
+                                    <th>Balance</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for inv in invoices %}
+                                <tr>
+                                    <td class="fw-bold font-monospace">{{ inv.invoice_number }}</td>
+                                    <td>{{ inv.due_date }}</td>
+                                    <td>₹{{ inv.total_amount }}</td>
+                                    <td class="text-success">₹{{ inv.paid_amount }}</td>
+                                    <td class="text-danger fw-bold">₹{{ inv.balance_amount }}</td>
+                                    <td>
+                                        <span class="badge {% if inv.payment_status == 'PAID' %}badge-status-active{% elif inv.payment_status == 'PARTIALLY_PAID' %}badge bg-warning-subtle text-warning-emphasis{% else %}badge-status-locked{% endif %}">
+                                            {{ inv.get_payment_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted small">
+                        No invoices generated yet for this customer.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Interactions Tab Pane -->
+                <div class="tab-pane fade" id="interactions-tab-pane" role="tabpanel" tabindex="0">
+                    {% if interactions %}
+                    <div class="list-group list-group-flush">
+                        {% for item in interactions %}
+                        <div class="list-group-item px-0 py-2">
+                            <div class="d-flex justify-content-between">
+                                <span class="fw-bold text-dark">{{ item.subject }}</span>
+                                <span class="small text-muted">{{ item.interaction_date|date:"M d, Y H:i" }}</span>
+                            </div>
+                            <div class="small text-secondary">{{ item.description|truncatewords:30 }}</div>
+                            <div class="small text-muted mt-1">Logged by: {{ item.sales_staff.user.full_name }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted small">
+                        No communication interactions logged for this customer.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Staff Modal (Admin only) -->
+{% if user.is_admin %}
+<div class="modal fade" id="assignStaffModal" tabindex="-1" aria-labelledby="assignStaffModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'accounts:customer_assign' customer.pk %}">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="assignStaffModalLabel">Assign Sales Representative</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label small fw-semibold">Select Sales Staff</label>
+                    <select name="assigned_staff" class="form-select">
+                        <option value="">-- Unassign (None) --</option>
+                        {% for s in all_staff %}
+                            <option value="{{ s.id }}" {% if customer.assigned_staff_id == s.id %}selected{% endif %}>
+                                {{ s.user.full_name }} ({{ s.staff_code }}) - {{ s.department }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

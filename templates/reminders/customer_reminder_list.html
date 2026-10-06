@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}My Scheduled Reminders{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-white py-3">
+        <h5 class="card-title mb-0 fw-bold text-dark"><i class="bi bi-bell text-primary me-2"></i>My Scheduled Reminders & Follow-Ups</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Date</th>
+                        <th>Type</th>
+                        <th>Task / Reminder</th>
+                        <th>Status</th>
+                        <th class="text-end pe-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in reminders %}
+                    <tr>
+                        <td class="ps-3">
+                            <div class="fw-semibold text-dark"><i class="bi bi-calendar3 me-1 text-primary"></i>{{ item.due_date|date:"F d, Y" }}</div>
+                            {% if item.due_time %}<small class="text-muted">{{ item.due_time|time:"H:i" }}</small>{% endif %}
+                        </td>
+                        <td><span class="badge bg-light text-dark border">{{ item.get_reminder_type_display }}</span></td>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ item.title }}</div>
+                            {% if item.description %}<small class="text-secondary">{{ item.description|truncatechars:70 }}</small>{% endif %}
+                        </td>
+                        <td>
+                            {% if item.status == 'COMPLETED' %}
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                            {% else %}
+                            <span class="badge bg-primary-subtle text-primary">Scheduled</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <a href="{% url 'reminders:reminder_detail' item.pk %}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-5 text-muted">
+                            <i class="bi bi-calendar2-check fs-1 d-block mb-2 text-secondary"></i>
+                            No upcoming scheduled reminders or appointments found.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

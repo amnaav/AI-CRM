@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ staff.user.full_name }} | Sales Staff | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'accounts:staff_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to Directory
+</a>
+{% if user.is_admin %}
+<a href="{% url 'accounts:staff_edit' staff.pk %}" class="btn btn-primary">
+    <i class="bi bi-pencil me-1"></i> Edit Staff
+</a>
+{% if staff.user != user %}
+    {% if staff.user.status == 'ACTIVE' %}
+    <form method="post" action="{% url 'accounts:staff_status' staff.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="INACTIVE">
+        <button type="submit" class="btn btn-outline-warning" data-confirm="Are you sure you want to deactivate sales staff member '{{ staff.user.full_name|escapejs }}'? All referential history and assigned clients will remain intact." data-confirm-title="Deactivate Sales Staff">
+            <i class="bi bi-person-x me-1"></i> Deactivate Staff
+        </button>
+    </form>
+    {% else %}
+    <form method="post" action="{% url 'accounts:staff_status' staff.pk %}" class="d-inline">
+        {% csrf_token %}
+        <input type="hidden" name="status" value="ACTIVE">
+        <button type="submit" class="btn btn-outline-success" data-confirm="Are you sure you want to activate sales staff member '{{ staff.user.full_name|escapejs }}'?" data-confirm-title="Activate Sales Staff">
+            <i class="bi bi-person-check me-1"></i> Activate Staff
+        </button>
+    </form>
+    {% endif %}
+{% endif %}
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Top Staff Identity Card -->
+<div class="crm-card mb-4">
+    <div class="row align-items-center gy-3">
+        <div class="col-md-auto text-center text-md-start">
+            <div class="profile-avatar bg-primary" style="width: 72px; height: 72px; font-size: 2rem;">
+                {{ staff.user.full_name|default:staff.user.username|slice:":1"|upper }}
+            </div>
+        </div>
+        <div class="col">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h3 class="h4 fw-bold text-dark mb-0">{{ staff.user.full_name }}</h3>
+                <span class="badge bg-light text-dark border font-monospace">{{ staff.staff_code }}</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                    {{ staff.designation }}
+                </span>
+                {% if staff.user.status == 'ACTIVE' %}
+                    <span class="badge badge-status-active"><i class="bi bi-check-circle-fill me-1"></i>Active</span>
+                {% elif staff.user.status == 'LOCKED' %}
+                    <span class="badge badge-status-locked"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+                {% else %}
+                    <span class="badge badge-status-inactive"><i class="bi bi-slash-circle me-1"></i>Inactive</span>
+                {% endif %}
+            </div>
+            <div class="text-secondary small d-flex flex-wrap gap-3">
+                <span><i class="bi bi-briefcase text-muted me-1"></i>{{ staff.department }}</span>
+                <span><i class="bi bi-envelope text-muted me-1"></i>{{ staff.user.email }}</span>
+                <span><i class="bi bi-telephone text-muted me-1"></i>{{ staff.user.phone|default:"No phone" }}</span>
+                <span><i class="bi bi-calendar text-muted me-1"></i>Joined: {{ staff.joining_date|date:"M d, Y" }}</span>
+            </div>
+        </div>
+
+        {% if user.is_admin and staff.user != user %}
+        <!-- Status Switcher Dropdown (Admin only) -->
+        <div class="col-md-auto">
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-secondary dropdown-toggle btn-sm" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-shield-check me-1"></i> Change Status
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                    <li>
+                        <form method="post" action="{% url 'accounts:staff_status' staff.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="ACTIVE">
+                            <button type="submit" class="dropdown-item py-2 text-success">
+                                <i class="bi bi-check-circle me-2"></i> Set as Active
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        <form method="post" action="{% url 'accounts:staff_status' staff.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="INACTIVE">
+                            <button type="submit" class="dropdown-item py-2 text-secondary">
+                                <i class="bi bi-slash-circle me-2"></i> Set as Inactive
+                            </button>
+                        </form>
+                    </li>
+                    <li>
+                        <form method="post" action="{% url 'accounts:staff_status' staff.pk %}">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="LOCKED">
+                            <button type="submit" class="dropdown-item py-2 text-danger">
+                                <i class="bi bi-lock me-2"></i> Lock Account
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Performance & Target Overview Card -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Assigned Clients</div>
+                    <div class="stat-value">{{ assigned_customers_count }}</div>
+                </div>
+                <div class="stat-icon"><i class="bi bi-people"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Assigned Leads</div>
+                    <div class="stat-value">{{ assigned_leads_count }}</div>
+                </div>
+                <div class="stat-icon warning"><i class="bi bi-funnel"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value">₹{{ total_sales_revenue }}</div>
+                </div>
+                <div class="stat-icon success"><i class="bi bi-currency-rupee"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Monthly Target</div>
+                    <div class="stat-value">₹{{ staff.assigned_target }}</div>
+                </div>
+                <div class="stat-icon info"><i class="bi bi-bullseye"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Target Progress Bar -->
+<div class="crm-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="fw-bold text-dark">Target Achievement Progress</span>
+        <span class="badge bg-primary fs-6">{{ target_progress_pct }}% Achieved</span>
+    </div>
+    <div class="progress" style="height: 12px;">
+        <div class="progress-bar bg-primary progress-bar-striped progress-bar-animated" role="progressbar" style="width: {{ target_progress_pct }}%;" aria-valuenow="{{ target_progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Assigned Customers List -->
+    <div class="col-lg-6">
+        <div class="crm-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0">Assigned Customers ({{ assigned_customers_count }})</h5>
+            </div>
+            {% if assigned_customers %}
+            <div class="table-responsive">
+                <table class="table table-sm crm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Customer</th>
+                            <th>Code</th>
+                            <th>Contact</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in assigned_customers %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'accounts:customer_detail' c.pk %}" class="fw-bold text-dark text-decoration-none hover-primary">
+                                    {{ c.user.full_name }}
+                                </a>
+                                {% if c.company %}<div class="text-muted small">{{ c.company }}</div>{% endif %}
+                            </td>
+                            <td><span class="badge bg-light text-dark border font-monospace">{{ c.customer_code }}</span></td>
+                            <td class="small text-secondary">{{ c.user.phone|default:c.user.email }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted small">
+                No customers assigned to this staff member yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Assigned Leads List -->
+    <div class="col-lg-6">
+        <div class="crm-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0">Assigned Leads ({{ assigned_leads_count }})</h5>
+            </div>
+            {% if assigned_leads %}
+            <div class="table-responsive">
+                <table class="table table-sm crm-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Lead Name</th>
+                            <th>Est. Value</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in assigned_leads %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-dark">{{ l.full_name }}</div>
+                                <div class="text-muted small">{{ l.company|default:l.email }}</div>
+                            </td>
+                            <td class="fw-semibold">₹{{ l.estimated_value }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ l.get_status_display }}</span></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted small">
+                No active leads currently assigned.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

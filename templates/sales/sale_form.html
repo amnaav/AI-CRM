@@ -1,0 +1,374 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'sales:sale_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Cancel & Back
+</a>
+{% endblock %}
+
+{% block content %}
+<form method="post" id="saleOrderForm" novalidate>
+    {% csrf_token %}
+    <div class="row g-4">
+        <!-- Left 8 columns: Order Details & Line Items Formset -->
+        <div class="col-lg-8">
+            <!-- Header card -->
+            <div class="crm-card mb-4">
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-file-earmark-text text-primary me-2"></i>Order Configuration
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Customer <span class="text-danger">*</span></label>
+                        {{ form.customer }}
+                        {% if form.customer.errors %}
+                            <div class="text-danger small mt-1">{{ form.customer.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        {% if user.is_admin %}
+                        <label class="form-label fw-semibold">Sales Staff <span class="text-danger">*</span></label>
+                        {{ form.sales_staff }}
+                        {% if form.sales_staff.errors %}
+                            <div class="text-danger small mt-1">{{ form.sales_staff.errors.0 }}</div>
+                        {% endif %}
+                        {% else %}
+                        <label class="form-label fw-semibold">Sales Staff</label>
+                        <input type="text" class="form-control" value="{{ user.full_name|default:user.username }}" disabled>
+                        {{ form.sales_staff }}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Order Date <span class="text-danger">*</span></label>
+                        {{ form.sale_date }}
+                        {% if form.sale_date.errors %}
+                            <div class="text-danger small mt-1">{{ form.sale_date.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Tax Rate (%)</label>
+                        {{ form.tax_rate }}
+                        {% if form.tax_rate.errors %}
+                            <div class="text-danger small mt-1">{{ form.tax_rate.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Order Fixed Discount (₹)</label>
+                        {{ form.discount }}
+                        <div class="form-text small">Applied after line totals.</div>
+                        {% if form.discount.errors %}
+                            <div class="text-danger small mt-1">{{ form.discount.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Order Notes / Terms</label>
+                        {{ form.notes }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Line Items Card -->
+            <div class="crm-card p-0 overflow-hidden mb-4">
+                <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-bottom">
+                    <div>
+                        <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-cart me-2 text-primary"></i>Order Line Items</h6>
+                        <span class="small text-muted">Add products and services to this order</span>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-item-btn">
+                        <i class="bi bi-plus-lg me-1"></i> Add Line Item
+                    </button>
+                </div>
+
+                {{ formset.management_form }}
+                {% if formset.non_form_errors %}
+                    <div class="alert alert-danger m-3 mb-0">
+                        {% for err in formset.non_form_errors %}
+                            <div><i class="bi bi-exclamation-triangle me-1"></i> {{ err }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="line-items-table">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr>
+                                <th class="ps-4" style="min-width: 250px;">Item / Service <span class="text-danger">*</span></th>
+                                <th style="width: 100px;">Qty <span class="text-danger">*</span></th>
+                                <th style="width: 140px;">Unit Price (₹) <span class="text-danger">*</span></th>
+                                <th style="width: 130px;">Line Disc (₹)</th>
+                                <th class="text-end" style="width: 130px;">Line Total</th>
+                                <th class="text-center" style="width: 60px;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody">
+                            {% for item_form in formset %}
+                            <tr class="item-row" data-index="{{ forloop.counter0 }}">
+                                <td class="ps-4">
+                                    {{ item_form.product }}
+                                    {% if item_form.product.errors %}
+                                        <div class="text-danger small mt-1">{{ item_form.product.errors.0 }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ item_form.quantity }}
+                                    {% if item_form.quantity.errors %}
+                                        <div class="text-danger small mt-1">{{ item_form.quantity.errors.0 }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ item_form.unit_price }}
+                                    {% if item_form.unit_price.errors %}
+                                        <div class="text-danger small mt-1">{{ item_form.unit_price.errors.0 }}</div>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ item_form.discount }}
+                                    {% if item_form.discount.errors %}
+                                        <div class="text-danger small mt-1">{{ item_form.discount.errors.0 }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end fw-bold text-dark pe-2 line-total-display">
+                                    ₹0.00
+                                </td>
+                                <td class="text-center">
+                                    {{ item_form.DELETE }}
+                                    <button type="button" class="btn btn-sm btn-outline-danger remove-item-btn" title="Remove line item">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right 4 columns: Live Financial Calculation Summary -->
+        <div class="col-lg-4">
+            <div class="crm-card sticky-top" style="top: 80px;">
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-calculator text-primary me-2"></i>Live Calculation
+                </h5>
+
+                <div class="d-flex justify-content-between py-2 small border-bottom">
+                    <span class="text-secondary">Gross Subtotal:</span>
+                    <span class="fw-semibold text-dark" id="calc-subtotal">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 small border-bottom text-danger">
+                    <span>Line Discounts:</span>
+                    <span class="fw-semibold" id="calc-line-discounts">-₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 small border-bottom">
+                    <span class="text-secondary">Items Total:</span>
+                    <span class="fw-bold text-dark" id="calc-items-total">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 small border-bottom text-danger">
+                    <span>Order Discount:</span>
+                    <span class="fw-semibold" id="calc-order-discount">-₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 small border-bottom">
+                    <span class="text-secondary">Taxable Amount:</span>
+                    <span class="fw-semibold text-dark" id="calc-taxable">₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between py-2 small border-bottom">
+                    <span class="text-secondary">Tax (<span id="calc-tax-rate-display">18.00</span>%):</span>
+                    <span class="fw-semibold text-dark" id="calc-tax-amount">+₹0.00</span>
+                </div>
+                <div class="d-flex justify-content-between py-3 my-2 border-top border-bottom">
+                    <span class="h6 fw-bold text-dark mb-0">Total Net Amount:</span>
+                    <span class="h4 fw-bold text-primary mb-0" id="calc-net-total">₹0.00</span>
+                </div>
+
+                <div id="discount-warning" class="alert alert-danger small d-none mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Order discount cannot exceed items total.
+                </div>
+
+                <div class="d-grid gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg shadow-sm" id="btn-save-order">
+                        <i class="bi bi-check-lg me-1"></i> {% if is_edit %}Save Changes{% else %}Create Sales Order{% endif %}
+                    </button>
+                    <a href="{% url 'sales:sale_list' %}" class="btn btn-outline-secondary">
+                        Discard Changes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Secure Embedded Products JSON via Django json_script -->
+{{ products_list|json_script:"products-catalog-data" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productsData = JSON.parse(document.getElementById('products-catalog-data').textContent || '[]');
+    const productsMap = {};
+    productsData.forEach(p => { productsMap[p.id] = p; });
+
+    const tbody = document.getElementById('items-tbody');
+    const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+    const addBtn = document.getElementById('add-item-btn');
+    const orderDiscountInput = document.getElementById('id_discount');
+    const taxRateInput = document.getElementById('id_tax_rate');
+    const form = document.getElementById('saleOrderForm');
+    const saveBtn = document.getElementById('btn-save-order');
+
+    // Recalculate everything
+    function recalculate() {
+        let grossSubtotal = 0;
+        let totalLineDiscounts = 0;
+        let itemsTotal = 0;
+
+        const rows = tbody.querySelectorAll('.item-row');
+        rows.forEach(row => {
+            const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"], input[type="hidden"][name$="-DELETE"]');
+            if (deleteInput && deleteInput.checked) {
+                row.style.display = 'none';
+                return;
+            }
+
+            const prodSelect = row.querySelector('.product-select');
+            const qtyInput = row.querySelector('.item-qty');
+            const priceInput = row.querySelector('.item-price');
+            const discInput = row.querySelector('.item-discount');
+            const totalDisplay = row.querySelector('.line-total-display');
+
+            const qty = Math.max(1, parseInt(qtyInput.value, 10) || 0);
+            const price = Math.max(0, parseFloat(priceInput.value) || 0);
+            let disc = Math.max(0, parseFloat(discInput.value) || 0);
+
+            const lineSub = qty * price;
+            if (disc > lineSub) {
+                disc = lineSub;
+                discInput.value = disc.toFixed(2);
+            }
+            const lineTot = Math.max(0, lineSub - disc);
+
+            totalDisplay.textContent = '₹' + lineTot.toFixed(2);
+
+            grossSubtotal += lineSub;
+            totalLineDiscounts += disc;
+            itemsTotal += lineTot;
+        });
+
+        // Order-level discount
+        let orderDisc = Math.max(0, parseFloat(orderDiscountInput.value) || 0);
+        const warningBox = document.getElementById('discount-warning');
+
+        if (orderDisc > itemsTotal) {
+            warningBox.classList.remove('d-none');
+            saveBtn.disabled = true;
+        } else {
+            warningBox.classList.add('d-none');
+            saveBtn.disabled = false;
+        }
+
+        const taxable = Math.max(0, itemsTotal - orderDisc);
+        const taxRate = Math.max(0, Math.min(100, parseFloat(taxRateInput.value) || 0));
+        const taxAmount = (taxable * taxRate / 100);
+        const netTotal = taxable + taxAmount;
+
+        document.getElementById('calc-subtotal').textContent = '₹' + grossSubtotal.toFixed(2);
+        document.getElementById('calc-line-discounts').textContent = '-₹' + totalLineDiscounts.toFixed(2);
+        document.getElementById('calc-items-total').textContent = '₹' + itemsTotal.toFixed(2);
+        document.getElementById('calc-order-discount').textContent = '-₹' + orderDisc.toFixed(2);
+        document.getElementById('calc-taxable').textContent = '₹' + taxable.toFixed(2);
+        document.getElementById('calc-tax-rate-display').textContent = taxRate.toFixed(2);
+        document.getElementById('calc-tax-amount').textContent = '+₹' + taxAmount.toFixed(2);
+        document.getElementById('calc-net-total').textContent = '₹' + netTotal.toFixed(2);
+    }
+
+    // Bind event listeners to a row
+    function attachRowEvents(row) {
+        const prodSelect = row.querySelector('.product-select');
+        const qtyInput = row.querySelector('.item-qty');
+        const priceInput = row.querySelector('.item-price');
+        const discInput = row.querySelector('.item-discount');
+        const removeBtn = row.querySelector('.remove-item-btn');
+
+        if (prodSelect) {
+            prodSelect.addEventListener('change', function() {
+                const prod = productsMap[this.value];
+                if (prod) {
+                    priceInput.value = parseFloat(prod.unit_price).toFixed(2);
+                }
+                recalculate();
+            });
+        }
+
+        if (qtyInput) qtyInput.addEventListener('input', recalculate);
+        if (priceInput) priceInput.addEventListener('input', recalculate);
+        if (discInput) discInput.addEventListener('input', recalculate);
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                }
+                row.style.display = 'none';
+                recalculate();
+            });
+        }
+    }
+
+    // Attach to existing rows
+    tbody.querySelectorAll('.item-row').forEach(attachRowEvents);
+
+    // Add new row dynamically
+    addBtn.addEventListener('click', function() {
+        const currentCount = parseInt(totalFormsInput.value, 10);
+        const firstRow = tbody.querySelector('.item-row');
+        if (!firstRow) return;
+
+        const newRow = firstRow.cloneNode(true);
+        newRow.style.display = '';
+        newRow.dataset.index = currentCount;
+
+        // Reset inputs and update names/ids
+        newRow.querySelectorAll('input, select').forEach(input => {
+            const oldName = input.name || '';
+            const oldId = input.id || '';
+            const newName = oldName.replace(/-\d+-/, `-${currentCount}-`);
+            const newId = oldId.replace(/-\d+-/, `-${currentCount}-`);
+            input.name = newName;
+            input.id = newId;
+
+            if (input.type === 'checkbox' || input.type === 'hidden' && input.name.endsWith('-DELETE')) {
+                input.checked = false;
+                input.value = '';
+            } else if (input.classList.contains('item-qty')) {
+                input.value = '1';
+            } else if (input.classList.contains('item-price') || input.classList.contains('item-discount')) {
+                input.value = '0.00';
+            } else if (input.tagName === 'SELECT') {
+                input.selectedIndex = 0;
+            }
+        });
+
+        newRow.querySelector('.line-total-display').textContent = '₹0.00';
+        tbody.appendChild(newRow);
+        totalFormsInput.value = currentCount + 1;
+        attachRowEvents(newRow);
+        recalculate();
+    });
+
+    orderDiscountInput.addEventListener('input', recalculate);
+    taxRateInput.addEventListener('input', recalculate);
+
+    // Initial calculation on page load
+    recalculate();
+
+    // Prevent double submission via JS button disable
+    form.addEventListener('submit', function(e) {
+        if (!saveBtn.disabled) {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Processing...';
+        }
+    });
+});
+</script>
+{% endblock %}

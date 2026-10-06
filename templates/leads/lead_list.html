@@ -1,0 +1,378 @@
+{% extends 'base.html' %}
+
+{% block title %}Leads Pipeline | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'leads:lead_create' %}" class="btn btn-primary shadow-sm" id="header-add-lead-btn">
+    <i class="bi bi-plus-lg me-1"></i> Add Lead
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Pipeline Summary KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-primary border-3">
+            <div class="text-muted small fw-medium">New Leads</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ pipeline_counts.NEW|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-info border-3">
+            <div class="text-muted small fw-medium">Contacted</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ pipeline_counts.CONTACTED|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-warning border-3">
+            <div class="text-muted small fw-medium">Qualified</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ pipeline_counts.QUALIFIED|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-warning border-3">
+            <div class="text-muted small fw-medium">In Proposal</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ pipeline_counts.PROPOSAL|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-primary border-3">
+            <div class="text-muted small fw-medium">Negotiation</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ pipeline_counts.NEGOTIATION|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-success border-3">
+            <div class="text-muted small fw-medium">Closed Won</div>
+            <div class="h4 fw-bold text-success mb-0 mt-1">{{ pipeline_counts.WON|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-secondary border-3">
+            <div class="text-muted small fw-medium">Closed Lost</div>
+            <div class="h4 fw-bold text-secondary mb-0 mt-1">{{ pipeline_counts.LOST|default:0 }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Bar Card -->
+<div class="crm-card mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <!-- Search Input -->
+        <div class="col-md-4 col-lg-3">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search name, code, email, company...">
+            </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Source Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="source" class="form-select">
+                <option value="">All Sources</option>
+                {% for val, label in source_choices %}
+                    <option value="{{ val }}" {% if source_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- AI Priority Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="priority" class="form-select">
+                <option value="">All AI Priorities</option>
+                {% for val, label in priority_choices %}
+                    <option value="{{ val }}" {% if priority_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Assigned Staff Filter (Admin only) -->
+        {% if user.is_admin and staff_list %}
+        <div class="col-sm-6 col-md-2">
+            <select name="assigned_staff" class="form-select">
+                <option value="">All Sales Staff</option>
+                {% for s in staff_list %}
+                    <option value="{{ s.id }}" {% if staff_filter == s.id|stringformat:"s" %}selected{% endif %}>{{ s.user.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <!-- Sorting -->
+        <div class="col-sm-6 col-md-2">
+            <select name="sort" class="form-select">
+                <option value="-created_at" {% if sort_field == '-created_at' %}selected{% endif %}>Newest First</option>
+                <option value="created_at" {% if sort_field == 'created_at' %}selected{% endif %}>Oldest First</option>
+                <option value="full_name" {% if sort_field == 'full_name' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="-full_name" {% if sort_field == '-full_name' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="-estimated_value" {% if sort_field == '-estimated_value' %}selected{% endif %}>Highest Value</option>
+                <option value="-probability_score" {% if sort_field == '-probability_score' %}selected{% endif %}>Highest AI Score</option>
+            </select>
+        </div>
+
+        <!-- Actions -->
+        <div class="col-auto d-flex gap-1">
+            <button type="submit" class="btn btn-primary px-3">Filter</button>
+            <a href="{% url 'leads:lead_list' %}" class="btn btn-light" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Leads Data Table Card -->
+<div class="crm-table-container mb-4">
+    <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+        <span class="small fw-semibold text-secondary">
+            Showing <strong class="text-dark">{{ leads.paginator.count }}</strong> leads in pipeline
+        </span>
+        {% if user.is_admin %}
+        <div>
+            {% if show_archived %}
+                <a href="{% url 'leads:lead_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-eye me-1"></i> View Active Leads
+                </a>
+            {% else %}
+                <a href="{% url 'leads:lead_list' %}?archived=1" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-archive me-1"></i> View Archived Leads
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% if leads %}
+    <div class="table-responsive">
+        <table class="table crm-table align-middle">
+            <thead>
+                <tr>
+                    <th>Lead Name & Company</th>
+                    <th>Lead Code</th>
+                    <th>Contact</th>
+                    <th>Status</th>
+                    <th>Est. Value</th>
+                    <th>Assigned Staff</th>
+                    <th>AI Conversion Probability</th>
+                    <th>AI Priority</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr>
+                    <!-- Lead Name & Company -->
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="profile-avatar bg-primary-subtle text-primary" style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                {{ lead.full_name|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <a href="{% url 'leads:lead_detail' lead.pk %}" class="fw-bold text-dark text-decoration-none hover-primary">
+                                    {{ lead.full_name }}
+                                </a>
+                                <div class="text-muted small">
+                                    {% if lead.company %}<i class="bi bi-building me-1"></i>{{ lead.company }}{% else %}<span class="text-secondary">Individual</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    <!-- Lead Code -->
+                    <td>
+                        <span class="badge bg-light text-dark border font-monospace">{{ lead.lead_code }}</span>
+                    </td>
+
+                    <!-- Contact -->
+                    <td>
+                        <div class="small text-truncate" style="max-width: 170px;">
+                            <i class="bi bi-envelope text-muted me-1"></i>{{ lead.email }}
+                        </div>
+                        <div class="small text-muted">
+                            <i class="bi bi-telephone text-muted me-1"></i>{{ lead.phone|default:"-" }}
+                        </div>
+                    </td>
+
+                    <!-- Status Badge -->
+                    <td>
+                        {% if lead.status == 'NEW' %}
+                            <span class="badge-lead badge-lead-new"><i class="bi bi-sparkle"></i> New</span>
+                        {% elif lead.status == 'CONTACTED' %}
+                            <span class="badge-lead badge-lead-contacted"><i class="bi bi-chat-dots"></i> Contacted</span>
+                        {% elif lead.status == 'QUALIFIED' %}
+                            <span class="badge-lead badge-lead-qualified"><i class="bi bi-check2-circle"></i> Qualified</span>
+                        {% elif lead.status == 'PROPOSAL' %}
+                            <span class="badge-lead badge-lead-proposal"><i class="bi bi-file-text"></i> Proposal</span>
+                        {% elif lead.status == 'NEGOTIATION' %}
+                            <span class="badge-lead badge-lead-negotiation"><i class="bi bi-cash-coin"></i> Negotiation</span>
+                        {% elif lead.status == 'WON' %}
+                            <span class="badge-lead badge-lead-won"><i class="bi bi-trophy-fill"></i> Won</span>
+                        {% elif lead.status == 'LOST' %}
+                            <span class="badge-lead badge-lead-lost"><i class="bi bi-x-circle"></i> Lost</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Est. Value -->
+                    <td>
+                        <span class="fw-bold text-dark font-monospace small">₹{{ lead.estimated_value|floatformat:2 }}</span>
+                    </td>
+
+                    <!-- Assigned Staff -->
+                    <td>
+                        {% if lead.assigned_staff %}
+                            <span class="badge bg-light text-dark border">
+                                <i class="bi bi-person-badge text-primary me-1"></i>{{ lead.assigned_staff.user.full_name }}
+                            </span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary">Unassigned</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- AI Conversion Probability -->
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            {% if lead.probability_score >= 70 %}
+                                <span class="score-pill score-high">{{ lead.probability_score }}%</span>
+                            {% elif lead.probability_score >= 40 %}
+                                <span class="score-pill score-medium">{{ lead.probability_score }}%</span>
+                            {% else %}
+                                <span class="score-pill score-low">{{ lead.probability_score }}%</span>
+                            {% endif %}
+                            <span class="text-muted small" style="font-size: 0.75rem;">
+                                {% if lead.scoring_method == 'MACHINE_LEARNING' %}
+                                    <span class="badge bg-primary-subtle text-primary" title="Scored via Scikit-learn Logistic Regression">ML</span>
+                                {% else %}
+                                    <span class="badge bg-light text-secondary border" title="Scored via Weighted Heuristic Engine">Rules</span>
+                                {% endif %}
+                            </span>
+                        </div>
+                    </td>
+
+                    <!-- AI Priority -->
+                    <td>
+                        {% if lead.ai_priority == 'HIGH' %}
+                            <span class="badge-priority badge-priority-high"><i class="bi bi-fire"></i> High</span>
+                        {% elif lead.ai_priority == 'MEDIUM' %}
+                            <span class="badge-priority badge-priority-medium"><i class="bi bi-dash-circle"></i> Medium</span>
+                        {% else %}
+                            <span class="badge-priority badge-priority-low"><i class="bi bi-arrow-down-circle"></i> Low</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Actions -->
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Lead Actions">
+                            <a href="{% url 'leads:lead_detail' lead.pk %}"
+                               class="btn btn-outline-primary"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="View Complete Lead Details"
+                               aria-label="View complete details for {{ lead.full_name }}">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
+                            </a>
+                            <a href="{% url 'leads:lead_edit' lead.pk %}"
+                               class="btn btn-outline-secondary"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="Edit Lead Details"
+                               aria-label="Edit lead details for {{ lead.full_name }}">
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
+                            </a>
+
+                            <!-- Recalculate AI Score Action -->
+                            <form method="post" action="{% url 'leads:lead_score' lead.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit"
+                                        class="btn btn-outline-info"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        title="Recalculate AI Lead Score"
+                                        aria-label="Recalculate score for {{ lead.full_name }}">
+                                    <i class="bi bi-stars" aria-hidden="true"></i>
+                                </button>
+                            </form>
+
+                            {% if user.is_admin and lead.is_active %}
+                            <!-- Soft Archive Action -->
+                            <a href="{% url 'leads:lead_archive' lead.pk %}"
+                               class="btn btn-outline-warning"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="Archive Lead"
+                               aria-label="Archive lead {{ lead.full_name }}">
+                                <i class="bi bi-archive" aria-hidden="true"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if leads.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center p-3 border-top bg-light">
+        <span class="small text-muted">
+            Page {{ leads.number }} of {{ leads.paginator.num_pages }}
+        </span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if leads.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ leads.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&source={{ source_filter }}&priority={{ priority_filter }}&sort={{ sort_field }}">Previous</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            {% for p in leads.paginator.page_range %}
+                {% if leads.number == p %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% elif p > leads.number|add:"-3" and p < leads.number|add:"3" %}
+                    <li class="page-item"><a class="page-link" href="?page={{ p }}&q={{ search_query }}&status={{ status_filter }}&source={{ source_filter }}&priority={{ priority_filter }}&sort={{ sort_field }}">{{ p }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if leads.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ leads.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&source={{ source_filter }}&priority={{ priority_filter }}&sort={{ sort_field }}">Next</a></li>
+            {% else %}
+                <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty State -->
+    <div class="text-center py-5">
+        <div class="stat-icon warning mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem;">
+            <i class="bi bi-funnel"></i>
+        </div>
+        <h5 class="fw-bold text-dark mb-1">No Leads Found</h5>
+        <p class="text-muted small mb-3">
+            {% if search_query or status_filter or source_filter or priority_filter %}
+                No leads matched your search or filter criteria. Try resetting filters.
+            {% else %}
+                Your leads pipeline is currently empty. Start capturing leads to build your sales funnel.
+            {% endif %}
+        </p>
+        <div class="d-flex justify-content-center gap-2">
+            {% if search_query or status_filter or source_filter or priority_filter %}
+                <a href="{% url 'leads:lead_list' %}" class="btn btn-outline-secondary btn-sm">Reset Filters</a>
+            {% else %}
+                <a href="{% url 'leads:lead_create' %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1"></i> Add First Lead
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

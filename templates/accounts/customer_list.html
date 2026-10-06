@@ -1,0 +1,261 @@
+{% extends 'base.html' %}
+
+{% block title %}Customers | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+{% if user.is_admin %}
+<a href="{% url 'accounts:customer_create' %}" class="btn btn-primary shadow-sm" id="header-add-customer-btn">
+    <i class="bi bi-plus-lg me-1"></i> Add Customer
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="crm-card mb-4">
+    <!-- Filter Bar -->
+    <form method="get" class="row g-2 align-items-center">
+        <!-- Search -->
+        <div class="col-md-4 col-lg-3">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search name, code, phone, company...">
+            </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Customer Type Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="type" class="form-select">
+                <option value="">All Types</option>
+                {% for val, label in type_choices %}
+                    <option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Assigned Staff Filter (Admin only) -->
+        {% if all_staff %}
+        <div class="col-sm-6 col-md-3 col-lg-2">
+            <select name="staff" class="form-select">
+                <option value="">All Assigned Staff</option>
+                {% for s in all_staff %}
+                    <option value="{{ s.id }}" {% if staff_filter == s.id|stringformat:"s" %}selected{% endif %}>{{ s.user.full_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        <!-- Sorting -->
+        <div class="col-sm-6 col-md-2">
+            <select name="sort" class="form-select">
+                <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+                <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+                <option value="user__full_name" {% if sort_by == 'user__full_name' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="-user__full_name" {% if sort_by == '-user__full_name' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="company" {% if sort_by == 'company' %}selected{% endif %}>Company</option>
+            </select>
+        </div>
+
+        <!-- Submit & Reset -->
+        <div class="col-auto d-flex gap-1">
+            <button type="submit" class="btn btn-primary px-3">Filter</button>
+            <a href="{% url 'accounts:customer_list' %}" class="btn btn-light" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Customer Table Card -->
+<div class="crm-table-container mb-4">
+    <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+        <span class="small fw-semibold text-secondary">
+            Showing <strong class="text-dark">{{ page_obj.paginator.count }}</strong> customer record{{ page_obj.paginator.count|pluralize }}
+        </span>
+        <span class="badge bg-secondary-subtle text-secondary small">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table crm-table align-middle">
+            <thead>
+                <tr>
+                    <th>Customer</th>
+                    <th>Code</th>
+                    <th>Contact Info</th>
+                    <th>Type / Company</th>
+                    <th>Assigned Staff</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in page_obj %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="profile-avatar" style="width: 38px; height: 38px; font-size: 0.95rem;">
+                                {{ c.user.full_name|default:c.user.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <a href="{% url 'accounts:customer_detail' c.pk %}" class="fw-bold text-dark text-decoration-none hover-primary">
+                                    {{ c.user.full_name }}
+                                </a>
+                                <div class="text-muted small">@{{ c.user.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-light text-dark border font-monospace">{{ c.customer_code }}</span></td>
+                    <td>
+                        <div class="small"><i class="bi bi-envelope text-muted me-1"></i> {{ c.user.email }}</div>
+                        <div class="small text-muted"><i class="bi bi-telephone text-muted me-1"></i> {{ c.user.phone|default:"-" }}</div>
+                    </td>
+                    <td>
+                        <span class="badge {% if c.customer_type == 'BUSINESS' %}bg-info-subtle text-info-emphasis{% else %}bg-light text-secondary border{% endif %}">
+                            {{ c.get_customer_type_display }}
+                        </span>
+                        {% if c.company %}
+                            <div class="small text-secondary mt-1 fw-medium">{{ c.company }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if c.assigned_staff %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                <i class="bi bi-person-badge me-1"></i>{{ c.assigned_staff.user.full_name }}
+                            </span>
+                        {% else %}
+                            <span class="text-muted small fst-italic">Unassigned</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if c.user.status == 'ACTIVE' %}
+                            <span class="badge badge-status-active"><i class="bi bi-check-circle-fill me-1"></i>Active</span>
+                        {% elif c.user.status == 'LOCKED' %}
+                            <span class="badge badge-status-locked"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+                        {% else %}
+                            <span class="badge badge-status-inactive"><i class="bi bi-slash-circle me-1"></i>Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Customer Actions">
+                            <a href="{% url 'accounts:customer_detail' c.pk %}"
+                               class="btn btn-outline-primary"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="View Details"
+                               aria-label="View details for {{ c.user.full_name }}">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
+                            </a>
+                            <a href="{% url 'accounts:customer_edit' c.pk %}"
+                               class="btn btn-outline-secondary"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="Edit Customer"
+                               aria-label="Edit customer {{ c.user.full_name }}">
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
+                            </a>
+                            {% if user.is_admin %}
+                                {% if c.user == user %}
+                                <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Cannot modify own account status">
+                                    <button type="button" class="btn btn-outline-secondary" disabled aria-label="Cannot modify own account">
+                                        <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                                    </button>
+                                </span>
+                                {% elif c.user.status == 'ACTIVE' %}
+                                <form method="post" action="{% url 'accounts:customer_status' c.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="INACTIVE">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit"
+                                            class="btn btn-outline-warning"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Deactivate Customer"
+                                            aria-label="Deactivate customer {{ c.user.full_name }}"
+                                            data-confirm="Are you sure you want to deactivate customer '{{ c.user.full_name|escapejs }}'? Their CRM history will be preserved."
+                                            data-confirm-title="Deactivate Customer">
+                                        <i class="bi bi-person-x" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <form method="post" action="{% url 'accounts:customer_status' c.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="status" value="ACTIVE">
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit"
+                                            class="btn btn-outline-success"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            title="Activate Customer"
+                                            aria-label="Activate customer {{ c.user.full_name }}"
+                                            data-confirm="Are you sure you want to activate customer '{{ c.user.full_name|escapejs }}'?"
+                                            data-confirm-title="Activate Customer">
+                                        <i class="bi bi-person-check" aria-hidden="true"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-people fs-1 text-secondary opacity-50"></i></div>
+                        <h6 class="fw-bold text-dark mb-1">No Customers Found</h6>
+                        <p class="text-secondary small mb-3">There are no customers matching the selected filters or query.</p>
+                        {% if user.is_admin %}
+                        <a href="{% url 'accounts:customer_create' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i> Add First Customer
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center p-3 border-top">
+        <div class="small text-muted">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </div>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}&sort={{ sort_by }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            {% for p in page_obj.paginator.page_range %}
+                {% if page_obj.number == p %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% elif p > page_obj.number|add:"-3" and p < page_obj.number|add:"3" %}
+                    <li class="page-item"><a class="page-link" href="?page={{ p }}&q={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}&sort={{ sort_by }}">{{ p }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&type={{ type_filter }}&sort={{ sort_by }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

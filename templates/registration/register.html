@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Customer Registration | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page-wrapper auth-page">
+    <div class="auth-card auth-card-wide">
+        <!-- Brand Header -->
+        <div class="text-center mb-3">
+            <img src="{% static 'images/logo.svg' %}" alt="AI CRM Logo" width="42" height="42" class="mb-2">
+            <h1 class="h5 fw-bold text-dark mb-1">Customer Portal Registration</h1>
+            <p class="text-secondary small mb-0">Create your customer account to track orders, invoices, and service requests.</p>
+        </div>
+
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <div class="alert alert-danger py-2 px-3 small rounded-3 mb-2">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="row g-2 g-md-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Full Name *</label>
+                    {{ form.full_name }}
+                    {% if form.full_name.errors %}<div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Username *</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Email Address *</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Phone Number (10 digits) *</label>
+                    {{ form.phone }}
+                    {% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Account Type</label>
+                    {{ form.customer_type }}
+                    {% if form.customer_type.errors %}<div class="text-danger small mt-1">{{ form.customer_type.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Company / Organization</label>
+                    {{ form.company }}
+                    {% if form.company.errors %}<div class="text-danger small mt-1">{{ form.company.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Street Address</label>
+                    {{ form.address }}
+                    {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <div class="row g-2">
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold text-dark mb-1">City</label>
+                            {{ form.city }}
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold text-dark mb-1">State</label>
+                            {{ form.state }}
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label small fw-semibold text-dark mb-1">Postal / PIN Code</label>
+                            {{ form.postal_code }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Password *</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label small fw-semibold text-dark mb-1">Confirm Password *</label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}<div class="text-danger small mt-1">{{ form.confirm_password.errors.0 }}</div>{% endif %}
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 fw-bold mt-3 shadow-sm">
+                <i class="bi bi-person-check me-2"></i> Register Account
+            </button>
+        </form>
+
+        <div class="mt-3 pt-2 border-top text-center">
+            <span class="text-secondary small">Already have an account?</span>
+            <a href="{% url 'accounts:login' %}" class="text-primary small fw-bold text-decoration-none ms-1">
+                Log In
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

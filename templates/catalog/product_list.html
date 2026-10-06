@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+{% if is_admin %}
+<a href="{% url 'catalog:product_create' %}" class="btn btn-primary shadow-sm" id="btn-add-item">
+    <i class="bi bi-plus-lg me-1"></i> Add Item
+</a>
+<a href="{% url 'catalog:category_list' %}" class="btn btn-outline-secondary shadow-sm" id="btn-manage-categories">
+    <i class="bi bi-tags me-1"></i> Categories
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Catalog KPI Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-primary border-3">
+            <div class="text-muted small fw-medium">Active Items</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ kpi_summary.total_active|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-info border-3">
+            <div class="text-muted small fw-medium">Products</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ kpi_summary.total_products|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-secondary border-3">
+            <div class="text-muted small fw-medium">Services</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ kpi_summary.total_services|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-6 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-warning border-3">
+            <div class="text-muted small fw-medium">Low-Stock Items</div>
+            <div class="h4 fw-bold text-warning-emphasis mb-0 mt-1">{{ kpi_summary.low_stock|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-6 col-xl">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-danger border-3">
+            <div class="text-muted small fw-medium">Out of Stock</div>
+            <div class="h4 fw-bold text-danger mb-0 mt-1">{{ kpi_summary.out_of_stock|default:0 }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Bar Card -->
+<div class="crm-card mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <!-- Search Query -->
+        <div class="col-md-3 col-lg-3">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search name, code, category...">
+            </div>
+        </div>
+
+        <!-- Type Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="type" class="form-select">
+                <option value="">All Types</option>
+                <option value="PRODUCT" {% if type_filter == 'PRODUCT' %}selected{% endif %}>Physical Products</option>
+                <option value="SERVICE" {% if type_filter == 'SERVICE' %}selected{% endif %}>Services / Consulting</option>
+            </select>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="category" class="form-select">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}" {% if category_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.category_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Stock Condition Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="stock" class="form-select">
+                <option value="">All Stock States</option>
+                <option value="in_stock" {% if stock_filter == 'in_stock' %}selected{% endif %}>In Stock</option>
+                <option value="low_stock" {% if stock_filter == 'low_stock' %}selected{% endif %}>Low Stock</option>
+                <option value="out_of_stock" {% if stock_filter == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+            </select>
+        </div>
+
+        <!-- Status Filter (Admin only) -->
+        {% if is_admin %}
+        <div class="col-sm-6 col-md-1">
+            <select name="status" class="form-select" title="Status">
+                <option value="">All Statuses</option>
+                <option value="ACTIVE" {% if status_filter == 'ACTIVE' %}selected{% endif %}>Active</option>
+                <option value="INACTIVE" {% if status_filter == 'INACTIVE' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        {% endif %}
+
+        <!-- Sorting -->
+        <div class="col-sm-6 col-md-2 col-lg-1">
+            <select name="sort" class="form-select" title="Sort Order">
+                <option value="name_asc" {% if sort_by == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="name_desc" {% if sort_by == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="price_asc" {% if sort_by == 'price_asc' %}selected{% endif %}>Price (Low)</option>
+                <option value="price_desc" {% if sort_by == 'price_desc' %}selected{% endif %}>Price (High)</option>
+                <option value="stock_asc" {% if sort_by == 'stock_asc' %}selected{% endif %}>Stock (Low)</option>
+                <option value="stock_desc" {% if sort_by == 'stock_desc' %}selected{% endif %}>Stock (High)</option>
+                <option value="newest" {% if sort_by == 'newest' %}selected{% endif %}>Newest</option>
+            </select>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="col-12 col-md d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filter</button>
+            {% if search_query or type_filter or category_filter or status_filter or stock_filter or sort_by != 'name_asc' %}
+            <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-secondary" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Catalog Table Card -->
+<div class="crm-card p-0 overflow-hidden mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3" style="width: 50px;"></th>
+                    <th>Code & Item Name</th>
+                    <th>Type</th>
+                    <th>Category</th>
+                    <th>Unit Price</th>
+                    <th>Stock / Condition</th>
+                    {% if is_admin %}<th>Status</th>{% endif %}
+                    <th class="text-end pe-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <!-- Thumbnail -->
+                    <td class="ps-3 text-center">
+                        {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.product_name }}" class="rounded border object-fit-cover" style="width: 40px; height: 40px;">
+                        {% else %}
+                        <div class="rounded bg-light border d-flex align-items-center justify-content-center text-muted mx-auto" style="width: 40px; height: 40px;">
+                            <i class="bi {% if item.item_type == 'PRODUCT' %}bi-box{% else %}bi-gear{% endif %}"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+
+                    <!-- Name & Code -->
+                    <td>
+                        <a href="{% url 'catalog:product_detail' pk=item.pk %}" class="text-decoration-none text-dark fw-bold hover-primary d-block">
+                            {{ item.product_name }}
+                        </a>
+                        <span class="text-muted small fw-mono">{{ item.product_code }}</span>
+                    </td>
+
+                    <!-- Item Type -->
+                    <td>
+                        {% if item.item_type == 'PRODUCT' %}
+                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle"><i class="bi bi-box me-1"></i>Product</span>
+                        {% else %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-briefcase me-1"></i>Service</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Category -->
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ item.category.category_name }}</span>
+                    </td>
+
+                    <!-- Unit Price -->
+                    <td class="fw-bold text-dark">
+                        ₹{{ item.unit_price }}
+                    </td>
+
+                    <!-- Stock / Condition -->
+                    <td>
+                        {% if item.item_type == 'PRODUCT' %}
+                            <div class="fw-semibold text-dark">{{ item.stock_quantity }} units</div>
+                            {% if item.is_out_of_stock %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
+                            {% elif item.is_low_stock %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle"><i class="bi bi-exclamation-triangle me-1"></i>Low (reorder ≤ {{ item.reorder_level }})</span>
+                            {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>In Stock</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-muted small fst-italic">N/A (Service)</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- Status (Admin only) -->
+                    {% if is_admin %}
+                    <td>
+                        {% if item.status == 'ACTIVE' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">Inactive</span>
+                        {% endif %}
+                    </td>
+                    {% endif %}
+
+                    <!-- Actions -->
+                    <td class="text-end pe-3">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'catalog:product_detail' pk=item.pk %}" class="btn btn-outline-secondary" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            {% if is_admin %}
+                            <a href="{% url 'catalog:product_update' pk=item.pk %}" class="btn btn-outline-secondary" title="Edit Item">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            {% if item.item_type == 'PRODUCT' %}
+                            <a href="{% url 'catalog:product_detail' pk=item.pk %}#adjust-stock" class="btn btn-outline-secondary" title="Adjust Stock">
+                                <i class="bi bi-arrow-left-right"></i>
+                            </a>
+                            {% endif %}
+                            <form method="post" action="{% url 'catalog:product_toggle_status' pk=item.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                {% if item.status == 'ACTIVE' %}
+                                <button type="submit" class="btn btn-outline-warning" title="Deactivate Item">
+                                    <i class="bi bi-pause-circle"></i>
+                                </button>
+                                {% else %}
+                                <button type="submit" class="btn btn-outline-success" title="Activate Item">
+                                    <i class="bi bi-play-circle"></i>
+                                </button>
+                                {% endif %}
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if is_admin %}8{% else %}7{% endif %}" class="text-center py-5 text-muted">
+                        <i class="bi bi-box-seam display-5 text-secondary opacity-50 mb-3 d-block"></i>
+                        <h5>No Items Found</h5>
+                        <p class="small mb-3">Try adjusting your filters or search terms.</p>
+                        {% if is_admin %}
+                        <a href="{% url 'catalog:product_create' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i> Add Item
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="p-3 border-top d-flex justify-content-between align-items-center">
+        <span class="small text-muted">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} items</span>
+        <nav aria-label="Catalog pagination">
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% if search_query %}&q={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">&laquo;</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">&lsaquo;</a></li>
+                {% endif %}
+
+                <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">&rsaquo;</a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if search_query %}&q={{ search_query }}{% endif %}{% if type_filter %}&type={{ type_filter }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">&raquo;</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

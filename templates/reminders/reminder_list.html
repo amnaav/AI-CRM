@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+
+{% block title %}Tasks & Reminders{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'reminders:reminder_create' %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> New Reminder
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Tab Navigation & Filters -->
+<div class="row mb-3">
+    <div class="col-12">
+        <ul class="nav nav-pills bg-white p-2 rounded shadow-sm mb-3">
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'pending' %}active{% endif %}" href="?tab=pending">
+                    Active <span class="badge bg-secondary ms-1">{{ counts.pending }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'today' %}active{% endif %}" href="?tab=today">
+                    Today <span class="badge bg-primary ms-1">{{ counts.today }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'overdue' %}active{% endif %}" href="?tab=overdue">
+                    Overdue {% if counts.overdue > 0 %}<span class="badge bg-danger ms-1">{{ counts.overdue }}</span>{% endif %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'upcoming' %}active{% endif %}" href="?tab=upcoming">
+                    Upcoming <span class="badge bg-info text-dark ms-1">{{ counts.upcoming }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'completed' %}active{% endif %}" href="?tab=completed">
+                    Completed <span class="badge bg-success ms-1">{{ counts.completed }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if current_tab == 'all' %}active{% endif %}" href="?tab=all">
+                    All History
+                </a>
+            </li>
+        </ul>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <form method="get" class="row g-2 align-items-center">
+                    <input type="hidden" name="tab" value="{{ current_tab }}">
+                    <div class="col-md-5">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" name="search" class="form-control border-start-0" placeholder="Search tasks, descriptions, targets..." value="{{ search_query }}">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="priority" class="form-select">
+                            <option value="">All Priorities</option>
+                            {% for code, label in priority_choices %}
+                            <option value="{{ code }}" {% if selected_priority == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="type" class="form-select">
+                            <option value="">All Types</option>
+                            {% for code, label in type_choices %}
+                            <option value="{{ code }}" {% if selected_type == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel me-1"></i> Filter</button>
+                        {% if search_query or selected_priority or selected_type %}
+                        <a href="?tab={{ current_tab }}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x-lg"></i></a>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-3">Priority</th>
+                        <th>Task / Reminder</th>
+                        <th>Type</th>
+                        <th>Target Context</th>
+                        <th>Due Date & Time</th>
+                        <th>Assigned To</th>
+                        <th>Status</th>
+                        <th class="text-end pe-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in page_obj %}
+                    <tr class="{% if item.is_overdue %}table-danger-subtle{% endif %}">
+                        <td class="ps-3">
+                            {% if item.priority == 'URGENT' %}
+                            <span class="badge bg-danger"><i class="bi bi-exclamation-octagon-fill me-1"></i>Urgent</span>
+                            {% elif item.priority == 'HIGH' %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-arrow-up-circle me-1"></i>High</span>
+                            {% elif item.priority == 'MEDIUM' %}
+                            <span class="badge bg-info text-dark">Medium</span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border">Low</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'reminders:reminder_detail' item.pk %}" class="fw-semibold text-dark text-decoration-none">
+                                {{ item.title }}
+                            </a>
+                            {% if item.description %}
+                            <div class="small text-secondary text-truncate" style="max-width: 250px;">{{ item.description|truncatechars:45 }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ item.get_reminder_type_display }}</span>
+                        </td>
+                        <td>
+                            {% if item.customer %}
+                            <div>
+                                <i class="bi bi-person text-primary me-1"></i>
+                                <span class="fw-medium">{{ item.customer.user.full_name }}</span>
+                            </div>
+                            {% elif item.lead %}
+                            <div>
+                                <i class="bi bi-funnel text-warning me-1"></i>
+                                <span class="fw-medium">{{ item.lead.full_name }}</span>
+                            </div>
+                            {% elif item.sale %}
+                            <div>
+                                <i class="bi bi-receipt text-info me-1"></i>
+                                <span>Order {{ item.sale.sale_number }}</span>
+                            </div>
+                            {% else %}
+                            <span class="text-muted small">General</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="{% if item.is_overdue %}text-danger fw-bold{% else %}text-dark{% endif %}">
+                                <i class="bi bi-calendar3 me-1"></i>{{ item.due_date|date:"Y-m-d" }}
+                                {% if item.due_time %}<small class="text-muted ms-1">{{ item.due_time|time:"H:i" }}</small>{% endif %}
+                            </div>
+                            {% if item.is_overdue %}
+                            <small class="text-danger"><i class="bi bi-clock-history me-1"></i>Overdue</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="small">{{ item.assigned_to.full_name|default:item.assigned_to.username }}</span>
+                        </td>
+                        <td>
+                            {% if item.status == 'COMPLETED' %}
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                            {% elif item.status == 'CANCELLED' %}
+                            <span class="badge bg-secondary-subtle text-secondary">Cancelled</span>
+                            {% else %}
+                            <span class="badge bg-primary-subtle text-primary">Pending</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-3">
+                            <div class="d-flex justify-content-end gap-1">
+                                {% if item.status == 'PENDING' %}
+                                <form method="post" action="{% url 'reminders:reminder_complete' item.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit" class="btn btn-sm btn-success" title="Mark Completed">
+                                        <i class="bi bi-check2"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'reminders:reminder_cancel' item.pk %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel Task">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                                <a href="{% url 'reminders:reminder_detail' item.pk %}" class="btn btn-sm btn-outline-secondary" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="{% url 'reminders:reminder_update' item.pk %}" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-calendar-check fs-1 d-block mb-2 text-secondary"></i>
+                            No reminders found for the selected tab.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center py-3">
+        <span class="small text-muted">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }}</span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&tab={{ current_tab }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}">Previous</a></li>
+            {% endif %}
+            <li class="page-item active"><span class="page-link">{{ page_obj.number }}</span></li>
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&tab={{ current_tab }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_priority %}&priority={{ selected_priority }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}">Next</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% if is_create %}{% url 'accounts:customer_list' %}{% else %}{% url 'accounts:customer_detail' customer.pk %}{% endif %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="crm-card">
+            <div class="d-flex align-items-center gap-3 mb-4 pb-3 border-bottom">
+                <div class="stat-icon info" style="width: 48px; height: 48px;">
+                    <i class="bi bi-person-lines-fill"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold text-dark mb-1">{{ page_title }}</h4>
+                    <p class="text-secondary small mb-0">
+                        {% if is_create %}
+                            Provision a new customer profile and linked login credentials.
+                        {% else %}
+                            Update customer information and account status.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3">
+                    {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
+                </div>
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <div class="row g-3">
+                    <!-- Primary User Account Information -->
+                    <div class="col-12"><h6 class="fw-bold text-primary mb-0"><i class="bi bi-person-badge me-1"></i> Account Credentials & Identity</h6></div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Full Name *</label>
+                        {{ form.full_name }}
+                        {% if form.full_name.errors %}<div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    {% if is_create %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Username *</label>
+                        {{ form.username }}
+                        {% if form.username.errors %}<div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Email Address {% if not user.is_admin and not is_create %}(Read Only){% else %}*{% endif %}</label>
+                        {% if not user.is_admin and not is_create %}
+                            <input type="email" class="form-control bg-light" value="{{ customer.user.email }}" readonly>
+                        {% else %}
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>{% endif %}
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Phone Number (10 digits) *</label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}<div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    {% if is_create %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Customer Code</label>
+                        {{ form.customer_code }}
+                        <div class="form-text small">Leave blank to auto-generate (e.g. CUST-XXXXXX).</div>
+                        {% if form.customer_code.errors %}<div class="text-danger small mt-1">{{ form.customer_code.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Password *</label>
+                        {{ form.password }}
+                        {% if form.password.errors %}<div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% elif user.is_admin %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Reset Password (Optional)</label>
+                        {{ form.new_password }}
+                        <div class="form-text small">Leave blank to keep existing password.</div>
+                        {% if form.new_password.errors %}<div class="text-danger small mt-1">{{ form.new_password.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    {% if user.is_admin %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Account Status</label>
+                        {{ form.status }}
+                        {% if form.status.errors %}<div class="text-danger small mt-1">{{ form.status.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Business & Profile Details -->
+                    <div class="col-12 mt-4"><h6 class="fw-bold text-primary mb-0"><i class="bi bi-building me-1"></i> Business Profile & Assignment</h6></div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Company / Organization</label>
+                        {{ form.company }}
+                        {% if form.company.errors %}<div class="text-danger small mt-1">{{ form.company.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    {% if user.is_admin or is_create %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Customer Type</label>
+                        {{ form.customer_type }}
+                        {% if form.customer_type.errors %}<div class="text-danger small mt-1">{{ form.customer_type.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-dark">Assigned Sales Staff</label>
+                        {{ form.assigned_staff }}
+                        {% if form.assigned_staff.errors %}<div class="text-danger small mt-1">{{ form.assigned_staff.errors.0 }}</div>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Address & Location Details -->
+                    <div class="col-12 mt-4"><h6 class="fw-bold text-primary mb-0"><i class="bi bi-geo-alt me-1"></i> Address & Internal Notes</h6></div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold text-dark">Street Address</label>
+                        {{ form.address }}
+                        {% if form.address.errors %}<div class="text-danger small mt-1">{{ form.address.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark">City</label>
+                        {{ form.city }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark">State</label>
+                        {{ form.state }}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-dark">PIN / Postal Code</label>
+                        {{ form.postal_code }}
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold text-dark">Internal CRM Notes</label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}<div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>{% endif %}
+                    </div>
+
+                    {% if not is_create and user.is_admin and form.is_active %}
+                    <div class="col-12 mt-2">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label small fw-semibold" for="{{ form.is_active.id_for_label }}">
+                                Account Active in Directory (Uncheck to soft-delete / archive)
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a href="{% if is_create %}{% url 'accounts:customer_list' %}{% else %}{% url 'accounts:customer_detail' customer.pk %}{% endif %}" class="btn btn-light px-4">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary px-4 fw-semibold shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i> {% if is_create %}Create Customer Account{% else %}Save Changes{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

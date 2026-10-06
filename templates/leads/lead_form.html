@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% if is_create %}{% url 'leads:lead_list' %}{% else %}{% url 'leads:lead_detail' lead.pk %}{% endif %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Cancel & Return
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+        <div class="crm-card">
+            <div class="d-flex align-items-center gap-3 pb-3 mb-4 border-bottom">
+                <div class="stat-icon primary">
+                    <i class="bi bi-funnel"></i>
+                </div>
+                <div>
+                    <h4 class="fw-bold text-dark mb-1">{{ page_title }}</h4>
+                    <p class="text-muted small mb-0">
+                        {% if is_create %}
+                            Enter prospect details below. AI Conversion Score will be calculated automatically.
+                        {% else %}
+                            Update prospect contact, deal size, or pipeline stage details.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 mb-4">
+                    {% for error in form.non_field_errors %}
+                        <div><i class="bi bi-exclamation-triangle me-1"></i>{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Section: Contact & Identity -->
+                <h6 class="fw-bold text-dark small text-uppercase mb-3" style="letter-spacing: 0.5px;">
+                    <i class="bi bi-person-lines-fill me-1 text-primary"></i>Prospect Identification
+                </h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Full Name <span class="text-danger">*</span></label>
+                        {{ form.full_name }}
+                        {% if form.full_name.errors %}
+                            <div class="text-danger small mt-1">{{ form.full_name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Company / Organization</label>
+                        {{ form.company }}
+                        {% if form.company.errors %}
+                            <div class="text-danger small mt-1">{{ form.company.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Email Address <span class="text-danger">*</span></label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Phone Number <span class="text-danger">*</span></label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                            <div class="text-danger small mt-1">{{ form.phone.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Section: Pipeline & Commercials -->
+                <h6 class="fw-bold text-dark small text-uppercase mb-3" style="letter-spacing: 0.5px;">
+                    <i class="bi bi-graph-up-arrow me-1 text-success"></i>Pipeline & Commercial Valuation
+                </h6>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Pipeline Stage <span class="text-danger">*</span></label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                            <div class="text-danger small mt-1">{{ form.status.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Acquisition Source <span class="text-danger">*</span></label>
+                        {{ form.source }}
+                        {% if form.source.errors %}
+                            <div class="text-danger small mt-1">{{ form.source.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-secondary">Estimated Value (₹)</label>
+                        {{ form.estimated_value }}
+                        {% if form.estimated_value.errors %}
+                            <div class="text-danger small mt-1">{{ form.estimated_value.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% if user.is_admin %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Assigned Sales Staff</label>
+                        {{ form.assigned_staff }}
+                        {% if form.assigned_staff.errors %}
+                            <div class="text-danger small mt-1">{{ form.assigned_staff.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold text-secondary">Assigned Sales Staff</label>
+                        <input type="text" class="form-control" value="{{ user.full_name }}" disabled>
+                        <div class="form-text small">Automatically assigned to your sales account.</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Section: Business Requirements & Notes -->
+                <h6 class="fw-bold text-dark small text-uppercase mb-3" style="letter-spacing: 0.5px;">
+                    <i class="bi bi-file-text me-1 text-warning"></i>Discovery Notes & Requirements
+                </h6>
+                <div class="mb-4">
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                        <div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <a href="{% if is_create %}{% url 'leads:lead_list' %}{% else %}{% url 'leads:lead_detail' lead.pk %}{% endif %}" class="btn btn-light px-4">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i>
+                        {% if is_create %}Create & Score Lead{% else %}Save Changes{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

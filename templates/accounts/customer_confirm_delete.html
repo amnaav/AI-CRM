@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Confirm Delete Customer | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="crm-card border-danger-subtle">
+            <div class="text-center mb-4">
+                <div class="stat-icon danger mx-auto mb-3" style="width: 60px; height: 60px; font-size: 1.8rem;">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <h4 class="fw-bold text-dark mb-1">Confirm Customer Removal</h4>
+                <p class="text-secondary small">Review customer status before proceeding with this action.</p>
+            </div>
+
+            <div class="p-3 bg-light rounded-3 mb-3 border">
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-secondary small">Customer Name:</span>
+                    <strong class="text-dark">{{ customer.user.full_name }}</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-1">
+                    <span class="text-secondary small">Customer Code:</span>
+                    <span class="font-monospace text-dark">{{ customer.customer_code }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-secondary small">Email:</span>
+                    <span class="text-dark">{{ customer.user.email }}</span>
+                </div>
+            </div>
+
+            {% if has_history %}
+            <div class="alert alert-warning small d-flex gap-2 align-items-start mb-4">
+                <i class="bi bi-info-circle-fill fs-5 flex-shrink-0 text-warning"></i>
+                <div>
+                    <strong>Associated CRM Records Detected:</strong>
+                    This customer is linked to existing CRM records (sales orders, invoices, payments, interactions, reminders, or leads).
+                    In accordance with enterprise CRM standards, this customer will be <strong>soft-deactivated</strong> rather than permanently deleted to preserve complete audit and operational integrity.
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-danger small d-flex gap-2 align-items-start mb-4">
+                <i class="bi bi-exclamation-octagon-fill fs-5 flex-shrink-0 text-danger"></i>
+                <div>
+                    <strong>Permanent Deletion:</strong>
+                    This customer has no associated sales, invoice, interaction, or lead history. The user account and profile will be permanently removed from the system.
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex justify-content-end gap-2">
+                    <a href="{% url 'accounts:customer_detail' customer.pk %}" class="btn btn-light px-4">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn {% if has_history %}btn-warning text-dark{% else %}btn-danger{% endif %} px-4">
+                        <i class="bi {% if has_history %}bi-person-x{% else %}bi-trash{% endif %} me-1"></i> {% if has_history %}Deactivate Account{% else %}Permanently Delete{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

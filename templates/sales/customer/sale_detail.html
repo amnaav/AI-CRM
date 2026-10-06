@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'sales:customer_sale_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to My Purchases
+</a>
+{% if sale.has_invoice %}
+<a href="{% url 'sales:customer_invoice_detail' sale.invoice.pk %}" class="btn btn-outline-primary">
+    <i class="bi bi-receipt me-1"></i> View Tax Invoice
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-8">
+        <div class="crm-card mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="fw-bold mb-0 text-dark">{{ sale.sale_number }}</h4>
+                        {% if sale.status == 'DRAFT' %}
+                            <span class="badge bg-secondary-subtle text-secondary border">Processing (Draft)</span>
+                        {% elif sale.status == 'CONFIRMED' %}
+                            <span class="badge bg-primary-subtle text-primary border">Confirmed</span>
+                        {% elif sale.status == 'COMPLETED' %}
+                            <span class="badge bg-success-subtle text-success border">Completed</span>
+                        {% elif sale.status == 'CANCELLED' %}
+                            <span class="badge bg-danger-subtle text-danger border">Cancelled</span>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted mt-1">Order Date: {{ sale.sale_date|date:"F d, Y" }}</div>
+                </div>
+                <div class="text-end">
+                    <div class="small text-muted text-uppercase">Net Total</div>
+                    <div class="h4 fw-bold text-primary mb-0">₹{{ sale.net_amount|floatformat:2 }}</div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th>Item</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ item.product.product_name }}</div>
+                                <div class="small text-muted">{{ item.product.product_code }}</div>
+                            </td>
+                            <td class="text-center fw-bold">{{ item.quantity }}</td>
+                            <td class="text-end">₹{{ item.unit_price|floatformat:2 }}</td>
+                            <td class="text-end fw-bold text-dark">₹{{ item.line_total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="crm-card mb-4">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Order Financials</h6>
+            <div class="d-flex justify-content-between py-1 small">
+                <span class="text-muted">Subtotal:</span>
+                <span>₹{{ sale.subtotal|floatformat:2 }}</span>
+            </div>
+            {% if sale.discount > 0 %}
+            <div class="d-flex justify-content-between py-1 small text-danger">
+                <span>Discount:</span>
+                <span>-₹{{ sale.discount|floatformat:2 }}</span>
+            </div>
+            {% endif %}
+            <div class="d-flex justify-content-between py-1 small">
+                <span class="text-muted">GST ({{ sale.tax_rate|floatformat:2 }}%):</span>
+                <span>+₹{{ sale.tax_amount|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-top border-bottom mt-2">
+                <span class="fw-bold">Total Net:</span>
+                <span class="h5 fw-bold text-primary mb-0">₹{{ sale.net_amount|floatformat:2 }}</span>
+            </div>
+        </div>
+
+        {% if sale.has_invoice %}
+        <div class="crm-card border-start border-4 border-info">
+            <h6 class="fw-bold text-dark mb-2">Invoice Status</h6>
+            <div class="small mb-3">
+                <div>Invoice #: <strong>{{ sale.invoice.invoice_number }}</strong></div>
+                <div>Status: 
+                    {% if sale.invoice.payment_status == 'PAID' %}
+                        <span class="badge bg-success-subtle text-success">Paid in Full</span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger">Balance: ₹{{ sale.invoice.balance_amount|floatformat:2 }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <a href="{% url 'sales:customer_invoice_detail' sale.invoice.pk %}" class="btn btn-sm btn-outline-info w-100">
+                View Invoice
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

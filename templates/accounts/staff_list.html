@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales Staff Directory | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'accounts:staff_create' %}" class="btn btn-primary shadow-sm" id="header-add-staff-btn">
+    <i class="bi bi-plus-lg me-1"></i> Add Sales Staff
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="crm-card mb-4">
+    <!-- Filter Bar -->
+    <form method="get" class="row g-2 align-items-center">
+        <!-- Search -->
+        <div class="col-md-5 col-lg-4">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search staff name, code, designation, dept...">
+            </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-sm-6 col-md-3 col-lg-2">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                {% for val, label in status_choices %}
+                    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Sorting -->
+        <div class="col-sm-6 col-md-3 col-lg-2">
+            <select name="sort" class="form-select">
+                <option value="-created_at" {% if sort_by == '-created_at' %}selected{% endif %}>Newest First</option>
+                <option value="created_at" {% if sort_by == 'created_at' %}selected{% endif %}>Oldest First</option>
+                <option value="user__full_name" {% if sort_by == 'user__full_name' %}selected{% endif %}>Name (A-Z)</option>
+                <option value="-user__full_name" {% if sort_by == '-user__full_name' %}selected{% endif %}>Name (Z-A)</option>
+                <option value="designation" {% if sort_by == 'designation' %}selected{% endif %}>Designation</option>
+            </select>
+        </div>
+
+        <!-- Submit & Reset -->
+        <div class="col-auto d-flex gap-1">
+            <button type="submit" class="btn btn-primary px-3">Filter</button>
+            <a href="{% url 'accounts:staff_list' %}" class="btn btn-light" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Staff Table Card -->
+<div class="crm-table-container mb-4">
+    <div class="d-flex justify-content-between align-items-center p-3 border-bottom bg-light">
+        <span class="small fw-semibold text-secondary">
+            Showing <strong class="text-dark">{{ page_obj.paginator.count }}</strong> sales representative{{ page_obj.paginator.count|pluralize }}
+        </span>
+        <span class="badge bg-secondary-subtle text-secondary small">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table crm-table align-middle">
+            <thead>
+                <tr>
+                    <th>Sales Staff</th>
+                    <th>Code</th>
+                    <th>Designation & Dept</th>
+                    <th>Contact Info</th>
+                    <th>Monthly Target</th>
+                    <th>Assigned Clients</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in page_obj %}
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="profile-avatar bg-primary" style="width: 38px; height: 38px; font-size: 0.95rem;">
+                                {{ s.user.full_name|default:s.user.username|slice:":1"|upper }}
+                            </div>
+                            <div>
+                                <a href="{% url 'accounts:staff_detail' s.pk %}" class="fw-bold text-dark text-decoration-none hover-primary">
+                                    {{ s.user.full_name }}
+                                </a>
+                                <div class="text-muted small">@{{ s.user.username }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge bg-light text-dark border font-monospace">{{ s.staff_code }}</span></td>
+                    <td>
+                        <div class="fw-medium text-dark small">{{ s.designation }}</div>
+                        <div class="text-muted small">{{ s.department }}</div>
+                    </td>
+                    <td>
+                        <div class="small"><i class="bi bi-envelope text-muted me-1"></i> {{ s.user.email }}</div>
+                        <div class="small text-muted"><i class="bi bi-telephone text-muted me-1"></i> {{ s.user.phone|default:"-" }}</div>
+                    </td>
+                    <td>
+                        <span class="fw-bold text-dark font-monospace small">₹{{ s.assigned_target }}</span>
+                    </td>
+                    <td>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                            <i class="bi bi-people me-1"></i>{{ s.assigned_customers.count }} Customers
+                        </span>
+                    </td>
+                    <td>
+                        {% if s.user.status == 'ACTIVE' %}
+                            <span class="badge badge-status-active"><i class="bi bi-check-circle-fill me-1"></i>Active</span>
+                        {% elif s.user.status == 'LOCKED' %}
+                            <span class="badge badge-status-locked"><i class="bi bi-lock-fill me-1"></i>Locked</span>
+                        {% else %}
+                            <span class="badge badge-status-inactive"><i class="bi bi-slash-circle me-1"></i>Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Staff Actions">
+                            <a href="{% url 'accounts:staff_detail' s.pk %}"
+                               class="btn btn-outline-primary"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="View Profile & Performance"
+                               aria-label="View profile for {{ s.user.full_name }}">
+                                <i class="bi bi-eye" aria-hidden="true"></i>
+                            </a>
+                            <a href="{% url 'accounts:staff_edit' s.pk %}"
+                               class="btn btn-outline-secondary"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="Edit Staff Details"
+                               aria-label="Edit staff details for {{ s.user.full_name }}">
+                                <i class="bi bi-pencil" aria-hidden="true"></i>
+                            </a>
+                            {% if s.user == user %}
+                            <span class="d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="Cannot modify own account status">
+                                <button type="button" class="btn btn-outline-secondary" disabled aria-label="Cannot modify own account">
+                                    <i class="bi bi-shield-lock" aria-hidden="true"></i>
+                                </button>
+                            </span>
+                            {% elif s.user.status == 'ACTIVE' %}
+                            <form method="post" action="{% url 'accounts:staff_status' s.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="INACTIVE">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit"
+                                        class="btn btn-outline-warning"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        title="Deactivate Sales Staff"
+                                        aria-label="Deactivate sales staff {{ s.user.full_name }}"
+                                        data-confirm="Are you sure you want to deactivate sales staff member '{{ s.user.full_name|escapejs }}'? All referential history and assigned clients will remain intact."
+                                        data-confirm-title="Deactivate Sales Staff">
+                                    <i class="bi bi-person-x" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="post" action="{% url 'accounts:staff_status' s.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="status" value="ACTIVE">
+                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                <button type="submit"
+                                        class="btn btn-outline-success"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        title="Activate Sales Staff"
+                                        aria-label="Activate sales staff {{ s.user.full_name }}"
+                                        data-confirm="Are you sure you want to activate sales staff member '{{ s.user.full_name|escapejs }}'?"
+                                        data-confirm-title="Activate Sales Staff">
+                                    <i class="bi bi-person-check" aria-hidden="true"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5">
+                        <div class="text-muted mb-2"><i class="bi bi-person-badge fs-1 text-secondary opacity-50"></i></div>
+                        <h6 class="fw-bold text-dark mb-1">No Sales Staff Found</h6>
+                        <p class="text-secondary small mb-3">There are no sales staff matching your search or filters.</p>
+                        <a href="{% url 'accounts:staff_create' %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i> Add First Staff Member
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if page_obj.has_other_pages %}
+    <div class="d-flex justify-content-between align-items-center p-3 border-top">
+        <div class="small text-muted">
+            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </div>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&status={{ status_filter }}&sort={{ sort_by }}">Previous</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Previous</span></li>
+            {% endif %}
+
+            {% for p in page_obj.paginator.page_range %}
+                {% if page_obj.number == p %}
+                    <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+                {% elif p > page_obj.number|add:"-3" and p < page_obj.number|add:"3" %}
+                    <li class="page-item"><a class="page-link" href="?page={{ p }}&q={{ search_query }}&status={{ status_filter }}&sort={{ sort_by }}">{{ p }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&status={{ status_filter }}&sort={{ sort_by }}">Next</a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">Next</span></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

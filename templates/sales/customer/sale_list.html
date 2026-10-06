@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-1">My Purchases & Orders</h4>
+        <div class="text-muted small">Track your orders and fulfillment status</div>
+    </div>
+    <a href="{% url 'catalog:customer_catalog' %}" class="btn btn-primary">
+        <i class="bi bi-box-seam me-1"></i> Browse Catalog
+    </a>
+</div>
+
+<div class="crm-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th class="ps-4">Order #</th>
+                    <th>Date</th>
+                    <th class="text-end">Total Amount</th>
+                    <th class="text-center">Order Status</th>
+                    <th class="text-center">Invoice</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td class="ps-4 fw-bold">
+                        <a href="{% url 'sales:customer_sale_detail' sale.pk %}" class="text-decoration-none text-primary">
+                            {{ sale.sale_number }}
+                        </a>
+                    </td>
+                    <td class="text-secondary small">{{ sale.sale_date|date:"d M, Y" }}</td>
+                    <td class="text-end fw-bold text-dark">₹{{ sale.net_amount|floatformat:2 }}</td>
+                    <td class="text-center">
+                        {% if sale.status == 'DRAFT' %}
+                            <span class="badge bg-secondary-subtle text-secondary border">Processing (Draft)</span>
+                        {% elif sale.status == 'CONFIRMED' %}
+                            <span class="badge bg-primary-subtle text-primary border">Confirmed</span>
+                        {% elif sale.status == 'COMPLETED' %}
+                            <span class="badge bg-success-subtle text-success border">Completed</span>
+                        {% elif sale.status == 'CANCELLED' %}
+                            <span class="badge bg-danger-subtle text-danger border">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if sale.has_invoice %}
+                            <a href="{% url 'sales:customer_invoice_detail' sale.invoice.pk %}" class="badge bg-info-subtle text-info text-decoration-none border">
+                                {{ sale.invoice.invoice_number }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4">
+                        <a href="{% url 'sales:customer_sale_detail' sale.pk %}" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i> View
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        <i class="bi bi-cart-x fs-1 opacity-50 d-block mb-2"></i>
+                        <p class="mb-2 fw-semibold">You have not placed any orders yet.</p>
+                        <a href="{% url 'catalog:customer_catalog' %}" class="btn btn-sm btn-primary">
+                            Browse Products & Services
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3 px-4">
+        <span class="small text-muted">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} orders</span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

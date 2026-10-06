@@ -1,0 +1,323 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'sales:sale_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Orders
+    </a>
+
+    {% if sale.status == 'DRAFT' %}
+        <a href="{% url 'sales:sale_update' sale.pk %}" class="btn btn-outline-primary" id="btn-edit-sale">
+            <i class="bi bi-pencil me-1"></i> Edit Order
+        </a>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#confirmOrderModal" id="btn-confirm-sale">
+            <i class="bi bi-check-circle me-1"></i> Confirm Order
+        </button>
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal" id="btn-cancel-sale">
+            <i class="bi bi-x-circle me-1"></i> Cancel Order
+        </button>
+    {% elif sale.status == 'CONFIRMED' %}
+        {% if sale.has_invoice %}
+            <a href="{% url 'sales:invoice_detail' sale.invoice.pk %}" class="btn btn-outline-info">
+                <i class="bi bi-receipt me-1"></i> View Invoice ({{ sale.invoice.invoice_number }})
+            </a>
+            {% if sale.invoice.balance_amount > 0 %}
+                <a href="{% url 'sales:payment_create' sale.invoice.pk %}" class="btn btn-primary">
+                    <i class="bi bi-credit-card me-1"></i> Record Payment
+                </a>
+            {% elif sale.invoice.payment_status == 'PAID' %}
+                <form method="post" action="{% url 'sales:sale_complete' sale.pk %}" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success" id="btn-complete-sale" onclick="this.disabled=true;this.form.submit();">
+                        <i class="bi bi-check2-all me-1"></i> Mark Completed
+                    </button>
+                </form>
+            {% endif %}
+        {% endif %}
+        {% if not sale.has_invoice or not sale.invoice.has_successful_payments %}
+        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelOrderModal">
+            <i class="bi bi-x-circle me-1"></i> Cancel Order
+        </button>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Top Overview Card -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="crm-card mb-3">
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-3">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="mb-0 fw-bold text-dark">{{ sale.sale_number }}</h4>
+                        {% if sale.status == 'DRAFT' %}
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Draft</span>
+                        {% elif sale.status == 'CONFIRMED' %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Confirmed</span>
+                        {% elif sale.status == 'COMPLETED' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Completed</span>
+                        {% elif sale.status == 'CANCELLED' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Cancelled</span>
+                        {% endif %}
+
+                        {% if sale.stock_deducted %}
+                            <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1" title="Stock deducted from inventory">
+                                <i class="bi bi-box-seam me-1"></i> Stock Deducted
+                            </span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Order Date: <span class="fw-semibold text-dark">{{ sale.sale_date|date:"F d, Y" }}</span>
+                        &bull; Created: {{ sale.created_at|date:"d M, Y H:i" }}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="small text-muted text-uppercase">Total Net Amount</div>
+                    <div class="h3 fw-bold text-primary mb-0">₹{{ sale.net_amount|floatformat:2 }}</div>
+                </div>
+            </div>
+
+            <!-- Customer & Staff Details -->
+            <div class="row g-3">
+                <div class="col-sm-6">
+                    <div class="p-3 bg-light rounded-3 h-100">
+                        <div class="text-muted small text-uppercase fw-semibold mb-2">Customer Information</div>
+                        <div class="fw-bold text-dark fs-6">{{ sale.customer.user.full_name|default:sale.customer.user.username }}</div>
+                        {% if sale.customer.company %}
+                        <div class="text-secondary small fw-medium">{{ sale.customer.company }}</div>
+                        {% endif %}
+                        <div class="small text-muted mt-2">
+                            <div><i class="bi bi-envelope me-1"></i> {{ sale.customer.user.email }}</div>
+                            {% if sale.customer.user.phone %}
+                            <div><i class="bi bi-telephone me-1"></i> {{ sale.customer.user.phone }}</div>
+                            {% endif %}
+                            {% if sale.customer.address %}
+                            <div><i class="bi bi-geo-alt me-1"></i> {{ sale.customer.address }}, {{ sale.customer.city }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="p-3 bg-light rounded-3 h-100">
+                        <div class="text-muted small text-uppercase fw-semibold mb-2">Sales Staff & Fulfillment</div>
+                        <div class="fw-bold text-dark fs-6">{{ sale.sales_staff.user.full_name|default:sale.sales_staff.user.username }}</div>
+                        <div class="text-secondary small">{{ sale.sales_staff.designation }} &bull; {{ sale.sales_staff.department }}</div>
+                        <div class="small text-muted mt-2">
+                            <div><i class="bi bi-person-badge me-1"></i> Staff Code: {{ sale.sales_staff.staff_code }}</div>
+                            <div><i class="bi bi-clock-history me-1"></i> Last Update: {{ sale.updated_at|date:"d M, Y H:i" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% if sale.notes %}
+            <div class="alert alert-light border mt-3 mb-0 small">
+                <div class="fw-semibold text-dark"><i class="bi bi-chat-left-text me-1"></i> Order Notes:</div>
+                <div class="text-secondary mt-1">{{ sale.notes|linebreaksbr }}</div>
+            </div>
+            {% endif %}
+
+            {% if sale.status == 'CANCELLED' and sale.cancellation_reason %}
+            <div class="alert alert-danger mt-3 mb-0 small">
+                <div class="fw-semibold text-danger"><i class="bi bi-exclamation-octagon me-1"></i> Order Cancelled on {{ sale.cancelled_at|date:"d M, Y H:i" }}:</div>
+                <div class="mt-1">{{ sale.cancellation_reason }}</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Line Items Table Card -->
+        <div class="crm-card p-0 overflow-hidden">
+            <div class="card-header bg-white py-3 px-4 border-bottom">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-list-check me-2 text-primary"></i>Ordered Items & Services</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Item</th>
+                            <th>Type</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Line Subtotal</th>
+                            <th class="text-end">Discount</th>
+                            <th class="text-end pe-4">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-semibold text-dark">{{ item.product.product_name }}</div>
+                                <div class="small text-muted">{{ item.product.product_code }}</div>
+                            </td>
+                            <td>
+                                {% if item.product.item_type == 'PRODUCT' %}
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-0">Product</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-0">Service</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center fw-bold">{{ item.quantity }}</td>
+                            <td class="text-end">₹{{ item.unit_price|floatformat:2 }}</td>
+                            <td class="text-end text-muted">₹{{ item.line_subtotal|floatformat:2 }}</td>
+                            <td class="text-end text-danger">
+                                {% if item.discount > 0 %}
+                                    -₹{{ item.discount|floatformat:2 }}
+                                {% else %}
+                                    <span class="text-muted">₹0.00</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end pe-4 fw-bold text-dark">₹{{ item.line_total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Financial Breakdown & Linked Invoice -->
+    <div class="col-lg-4">
+        <!-- Financial Summary -->
+        <div class="crm-card mb-3">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Financial Calculation</h6>
+            <div class="d-flex justify-content-between py-1 small">
+                <span class="text-secondary">Line Subtotals:</span>
+                <span class="fw-medium">₹{{ sale.subtotal|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 small text-danger">
+                <span>Order Discount:</span>
+                <span>-₹{{ sale.discount|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 small border-top pt-2">
+                <span class="text-secondary">Taxable Base:</span>
+                <span class="fw-medium">₹{{ sale.taxable_amount|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-1 small">
+                <span class="text-secondary">Tax ({{ sale.tax_rate|floatformat:2 }}%):</span>
+                <span class="fw-medium">+₹{{ sale.tax_amount|floatformat:2 }}</span>
+            </div>
+            <div class="d-flex justify-content-between py-2 border-top border-bottom mt-2">
+                <span class="fw-bold text-dark">Total Net Amount:</span>
+                <span class="h5 fw-bold text-primary mb-0">₹{{ sale.net_amount|floatformat:2 }}</span>
+            </div>
+            <div class="small text-muted mt-2">
+                <i class="bi bi-shield-check text-success me-1"></i> Exact-calculation certified:
+                <div class="mt-1" style="font-size: 0.75rem;">
+                    <code>net = taxable (₹{{ sale.taxable_amount }}) + tax (₹{{ sale.tax_amount }})</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linked Invoice Card -->
+        <div class="crm-card">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Linked Invoice</h6>
+            {% if sale.has_invoice %}
+                <div class="p-3 bg-light rounded-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold text-primary">{{ sale.invoice.invoice_number }}</span>
+                        {% if sale.invoice.payment_status == 'PAID' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">Fully Paid</span>
+                        {% elif sale.invoice.payment_status == 'PARTIALLY_PAID' %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Partially Paid</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Unpaid</span>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted">
+                        <div>Due Date: <span class="fw-semibold text-dark">{{ sale.invoice.due_date|date:"d M, Y" }}</span></div>
+                        <div>Total: ₹{{ sale.invoice.total_amount|floatformat:2 }}</div>
+                        <div>Paid: <span class="text-success fw-bold">₹{{ sale.invoice.paid_amount|floatformat:2 }}</span></div>
+                        <div>Balance: <span class="text-danger fw-bold">₹{{ sale.invoice.balance_amount|floatformat:2 }}</span></div>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'sales:invoice_detail' sale.invoice.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye me-1"></i> View Invoice
+                    </a>
+                    <a href="{% url 'sales:invoice_print' sale.invoice.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-printer me-1"></i> Print Invoice
+                    </a>
+                </div>
+            {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-receipt-cutoff fs-2 opacity-50 d-block mb-1"></i>
+                    <p class="small mb-0">Invoice will be generated automatically upon confirming this order.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Order Modal -->
+{% if sale.status == 'DRAFT' %}
+<div class="modal fade" id="confirmOrderModal" tabindex="-1" aria-labelledby="confirmOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success-subtle text-success">
+                <h5 class="modal-title" id="confirmOrderModalLabel"><i class="bi bi-check-circle me-1"></i> Confirm Sales Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'sales:sale_confirm' sale.pk %}" id="confirmOrderForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to confirm sales order <strong>{{ sale.sale_number }}</strong>?</p>
+                    <div class="alert alert-warning small mb-0">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i> <strong>Important:</strong>
+                        <ul class="mb-0 ps-3 mt-1">
+                            <li>Physical product items will have stock deducted immediately.</li>
+                            <li>A formal tax invoice will be generated automatically.</li>
+                            <li>Order details will be locked from further edits.</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="btn-submit-confirm" onclick="this.disabled=true;this.innerHTML='Confirming...';this.form.submit();">
+                        Yes, Confirm Order
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Cancel Order Modal -->
+<div class="modal fade" id="cancelOrderModal" tabindex="-1" aria-labelledby="cancelOrderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger-subtle text-danger">
+                <h5 class="modal-title" id="cancelOrderModalLabel"><i class="bi bi-x-circle me-1"></i> Cancel Sales Order</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'sales:sale_cancel' sale.pk %}" id="cancelOrderForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to cancel sales order <strong>{{ sale.sale_number }}</strong>?</p>
+                    {% if sale.stock_deducted %}
+                    <div class="alert alert-info small mb-3">
+                        <i class="bi bi-box-arrow-in-down me-1"></i> All previously deducted catalog inventory will be atomically restored.
+                    </div>
+                    {% endif %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Cancellation Reason <span class="text-danger">*</span></label>
+                        {{ cancel_form.cancellation_reason }}
+                        <div class="form-text">Please provide a clear reason for the audit log.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger" id="btn-submit-cancel" onclick="this.disabled=true;this.innerHTML='Cancelling...';this.form.submit();">
+                        Confirm Cancellation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

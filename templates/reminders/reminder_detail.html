@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Reminder: {{ reminder.title }}{% endblock %}
+
+{% block page_actions %}
+{% if not user.is_customer %}
+<div class="d-flex gap-2">
+    {% if reminder.status == 'PENDING' %}
+    <form method="post" action="{% url 'reminders:reminder_complete' reminder.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-success">
+            <i class="bi bi-check2-circle me-1"></i> Mark Completed
+        </button>
+    </form>
+    <form method="post" action="{% url 'reminders:reminder_cancel' reminder.pk %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-danger">
+            <i class="bi bi-x-circle me-1"></i> Cancel Reminder
+        </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'reminders:reminder_update' reminder.pk %}" class="btn btn-primary">
+        <i class="bi bi-pencil me-1"></i> Edit
+    </a>
+    <a href="{% url 'reminders:reminder_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Tasks
+    </a>
+</div>
+{% else %}
+<a href="{% url 'reminders:customer_reminder_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to My Reminders
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    {% if reminder.priority == 'URGENT' %}
+                    <span class="badge bg-danger">Urgent</span>
+                    {% elif reminder.priority == 'HIGH' %}
+                    <span class="badge bg-warning text-dark">High</span>
+                    {% elif reminder.priority == 'MEDIUM' %}
+                    <span class="badge bg-info text-dark">Medium</span>
+                    {% else %}
+                    <span class="badge bg-light text-muted border">Low</span>
+                    {% endif %}
+                    <h5 class="mb-0 fw-bold">{{ reminder.title }}</h5>
+                </div>
+                <div>
+                    {% if reminder.status == 'COMPLETED' %}
+                    <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Completed</span>
+                    {% elif reminder.status == 'CANCELLED' %}
+                    <span class="badge bg-secondary">Cancelled</span>
+                    {% else %}
+                    <span class="badge bg-primary">Pending</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                {% if reminder.description %}
+                <div class="mb-4">
+                    <label class="text-muted small fw-semibold text-uppercase">Description / Instructions</label>
+                    <div class="p-3 bg-light rounded border text-dark" style="white-space: pre-wrap;">{{ reminder.description }}</div>
+                </div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Due Date</label>
+                        <div class="fw-semibold {% if reminder.is_overdue %}text-danger{% else %}text-dark{% endif %}">
+                            <i class="bi bi-calendar-event me-1"></i>{{ reminder.due_date|date:"F d, Y" }}
+                            {% if reminder.due_time %}<span class="text-muted ms-1">at {{ reminder.due_time|time:"H:i" }}</span>{% endif %}
+                            {% if reminder.is_overdue %}<span class="badge bg-danger ms-2">Overdue</span>{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Category Type</label>
+                        <div><span class="badge bg-light text-dark border">{{ reminder.get_reminder_type_display }}</span></div>
+                    </div>
+
+                    {% if reminder.status == 'COMPLETED' %}
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Completed At</label>
+                        <div class="fw-semibold text-success"><i class="bi bi-check2-all me-1"></i>{{ reminder.completed_at|date:"Y-m-d H:i" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Completed By</label>
+                        <div class="fw-semibold">{{ reminder.completed_by.full_name|default:reminder.completed_by.username|default:"Staff" }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-info-circle me-1 text-primary"></i>Task Details & Association</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted small">Assigned To</label>
+                    <div class="fw-semibold">{{ reminder.assigned_to.full_name|default:reminder.assigned_to.username }}</div>
+                    <small class="text-muted">{{ reminder.assigned_to.get_role_display }}</small>
+                </div>
+
+                {% if reminder.customer %}
+                <div class="mb-3">
+                    <label class="text-muted small">Customer</label>
+                    <div class="fw-semibold">
+                        {% if not user.is_customer %}
+                        <a href="{% url 'accounts:customer_detail' reminder.customer.pk %}" class="text-decoration-none">
+                            {{ reminder.customer.user.full_name }}
+                        </a>
+                        {% else %}
+                        {{ reminder.customer.user.full_name }}
+                        {% endif %}
+                    </div>
+                    <small class="text-muted font-monospace">{{ reminder.customer.customer_code }}</small>
+                </div>
+                {% endif %}
+
+                {% if reminder.lead and not user.is_customer %}
+                <div class="mb-3">
+                    <label class="text-muted small">Lead</label>
+                    <div class="fw-semibold">
+                        <a href="{% url 'leads:lead_detail' reminder.lead.pk %}" class="text-decoration-none text-warning-emphasis">
+                            {{ reminder.lead.full_name }}
+                        </a>
+                    </div>
+                    <small class="text-muted font-monospace">{{ reminder.lead.lead_code }}</small>
+                </div>
+                {% endif %}
+
+                {% if reminder.sale %}
+                <div class="mb-3">
+                    <label class="text-muted small">Sale Order</label>
+                    <div class="fw-semibold">
+                        {% if not user.is_customer %}
+                        <a href="{% url 'sales:sale_detail' reminder.sale.pk %}" class="text-decoration-none text-info">
+                            Order #{{ reminder.sale.sale_number }}
+                        </a>
+                        {% else %}
+                        Order #{{ reminder.sale.sale_number }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <hr>
+                <div>
+                    <label class="text-muted small">Customer Visibility</label>
+                    <div>
+                        {% if reminder.is_customer_visible %}
+                        <span class="badge bg-success-subtle text-success border"><i class="bi bi-eye me-1"></i>Visible in Customer Portal</span>
+                        {% else %}
+                        <span class="badge bg-light text-muted border"><i class="bi bi-eye-slash me-1"></i>Internal Staff Only</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

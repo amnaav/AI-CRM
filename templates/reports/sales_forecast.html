@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Explainable AI Sales Forecasting | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <span class="badge rounded-pill px-3 py-1 fw-bold
+                    {% if forecast.status == 'ACTIVE' %}bg-success-subtle text-success
+                    {% elif forecast.status == 'FALLBACK' %}bg-warning-subtle text-warning
+                    {% else %}bg-secondary-subtle text-secondary{% endif %}">
+                    <i class="bi bi-cpu me-1"></i>
+                    {% if forecast.is_ml %}Scikit-Learn Linear Regression Active
+                    {% elif forecast.status == 'FALLBACK' %}Deterministic Moving Average Fallback
+                    {% else %}Status: Insufficient Historical Data{% endif %}
+                </span>
+                {% if target_staff %}
+                <span class="badge bg-light text-dark border">
+                    Staff: {{ target_staff.user.get_full_name|default:target_staff.user.username }}
+                </span>
+                {% else %}
+                <span class="badge bg-light text-dark border">Company-Wide Forecast</span>
+                {% endif %}
+            </div>
+            <h2 class="h3 fw-bold text-dark mb-1">Explainable AI Sales Forecasting</h2>
+            <p class="text-muted small mb-0">
+                Data-driven 3-month future revenue projection based on historical sales trends with statistical explainability.
+            </p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0 align-items-center">
+            {% if all_staff %}
+            <form method="get" class="d-flex align-items-center gap-2">
+                <label class="small text-muted text-nowrap">Scope:</label>
+                <select name="staff_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Company Sales</option>
+                    {% for s in all_staff %}
+                    <option value="{{ s.id }}" {% if target_staff and target_staff.id == s.id %}selected{% endif %}>
+                        {{ s.user.get_full_name|default:s.user.username }} ({{ s.staff_code }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% endif %}
+            <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-grid me-1"></i> All Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Insufficient Data / Fallback Notice Banner -->
+    {% if forecast.status == 'INSUFFICIENT_DATA' %}
+    <div class="alert alert-warning border-0 shadow-sm mb-4 d-flex align-items-start gap-3 p-3 p-md-4">
+        <i class="bi bi-info-circle-fill fs-3 text-warning flex-shrink-0 mt-1"></i>
+        <div>
+            <h5 class="fw-bold mb-1">Notice: Insufficient Historical Data ({{ forecast.num_months_used }} of 6 Months Available)</h5>
+            <p class="mb-2 small">
+                Enterprise AI sales forecasting requires a minimum of <b>6 distinct calendar months</b> of confirmed sales to fit a statistically valid linear regression trend. Currently, only <b>{{ forecast.num_months_used }} month(s)</b> are recorded in the CRM.
+            </p>
+            <p class="mb-0 small text-muted">
+                To maintain statistical integrity, the system will not invent trendlines from single-month data. Future forecasts are held at <b>₹0.00</b> until more monthly data accumulates.
+            </p>
+        </div>
+    </div>
+    {% elif forecast.status == 'FALLBACK' %}
+    <div class="alert alert-info border-0 shadow-sm mb-4 d-flex align-items-start gap-3 p-3 p-md-4">
+        <i class="bi bi-calculator-fill fs-3 text-info flex-shrink-0 mt-1"></i>
+        <div>
+            <h5 class="fw-bold mb-1">Notice: Moving Average Fallback Engaged ({{ forecast.num_months_used }} of 6 Months Available)</h5>
+            <p class="mb-0 small">
+                The CRM contains <b>{{ forecast.num_months_used }} calendar months</b> of historical sales. Since 6 months are required to train Scikit-Learn Machine Learning, a transparent deterministic <b>Simple Moving Average (SMA)</b> fallback has been applied.
+            </p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 3-Month Projection Cards -->
+    <h5 class="fw-bold text-dark mb-3">3-Month Future Revenue Horizon</h5>
+    <div class="row g-3 mb-4">
+        {% for pred in forecast.predictions %}
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100 border-top border-4
+                {% if pred.step == 1 %}border-primary{% elif pred.step == 2 %}border-warning{% else %}border-info{% endif %}"
+                {% if pred.step == 2 %}style="border-top-color: var(--color-accent, #EC4899) !important;"{% endif %}>
+                <div class="card-body p-4 text-center">
+                    <span class="badge bg-light text-muted border mb-2">Month +{{ pred.step }} Projection</span>
+                    <h5 class="fw-bold text-dark mb-1">{{ pred.label }}</h5>
+                    <h2 class="fw-bold mb-2
+                        {% if pred.step == 1 %}text-primary{% elif pred.step == 2 %}text-warning{% else %}text-info{% endif %}"
+                        style="{% if pred.step == 2 %}color: var(--color-accent, #EC4899) !important;{% endif %}">
+                        ₹{{ pred.forecast_value|floatformat:2 }}
+                    </h2>
+                    <small class="text-muted d-block">
+                        {% if forecast.is_ml %}Linear trend projection
+                        {% elif forecast.status == 'FALLBACK' %}Moving average projection
+                        {% else %}Baseline zero projection{% endif %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Chart: Historical vs Future Projection -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+            <div>
+                <h5 class="fw-bold mb-0">Historical Monthly Sales & 3-Month Trajectory</h5>
+                <small class="text-muted">Comparing past performance against future forecast</small>
+            </div>
+            <span class="badge bg-light text-dark border">
+                Horizon: 3 Months
+            </span>
+        </div>
+        <div class="card-body">
+            <div style="height: 320px;">
+                <canvas id="forecastComparisonChart"></canvas>
+            </div>
+
+            <!-- Accessible Data Table -->
+            <div class="mt-4 pt-3 border-top">
+                <a class="text-decoration-none small text-secondary" data-bs-toggle="collapse" href="#forecastTableCollapse" role="button" aria-expanded="false">
+                    <i class="bi bi-table me-1"></i> View Historical & Projected Data Table
+                </a>
+                <div class="collapse mt-3" id="forecastTableCollapse">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped small mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Month</th>
+                                    <th>Period Type</th>
+                                    <th class="text-end">Revenue / Projection (₹)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pt in forecast.historical_points %}
+                                <tr>
+                                    <td class="fw-semibold">{{ pt.label }}</td>
+                                    <td><span class="badge bg-primary-subtle text-primary">Historical Actual</span></td>
+                                    <td class="text-end fw-bold">₹{{ pt.revenue|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% for pred in forecast.predictions %}
+                                <tr>
+                                    <td class="fw-semibold">{{ pred.label }}</td>
+                                    <td><span class="badge" style="background-color: rgba(236, 72, 153, 0.12); color: var(--color-accent, #EC4899); border: 1px solid var(--border-color);">Projected Forecast</span></td>
+                                    <td class="text-end fw-bold text-success">₹{{ pred.forecast_value|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explainability & Model Transparency Breakdown -->
+    <div class="row g-4 mb-4">
+        <!-- Statistical Metrics Card -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h5 class="fw-bold mb-0">Statistical Methodology</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Forecasting Method:</span>
+                            <span class="fw-bold">{{ forecast.method }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Algorithm Engine:</span>
+                            <span>{% if forecast.is_ml %}Scikit-Learn (LinearRegression){% else %}Deterministic Moving Average{% endif %}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Historical Months Used:</span>
+                            <span class="fw-bold">{{ forecast.num_months_used }} Months</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Historical Fit (R²):</span>
+                            <span>
+                                {% if forecast.r_squared is not None %}
+                                <b class="text-primary">{{ forecast.r_squared }}</b>
+                                {% else %}
+                                <span class="text-muted">N/A (Requires ≥ 6 months)</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Monthly Slope:</span>
+                            <span>
+                                {% if forecast.monthly_slope is not None %}
+                                <b>₹{{ forecast.monthly_slope|floatformat:2 }} / month</b>
+                                {% else %}
+                                <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span class="text-muted">Detected Trend:</span>
+                            <span class="badge bg-light text-dark border">{{ forecast.trend_direction }}</span>
+                        </li>
+                    </ul>
+
+                    <div class="p-3 bg-light rounded mt-3 small">
+                        <i class="bi bi-chat-left-quote text-muted me-1"></i>
+                        <b>Model Assessment:</b> {{ forecast.notes }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Explainable Assumptions Card -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h5 class="fw-bold mb-0">Model Assumptions & Constraints</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        To guarantee explainability and prevent AI hallucinations or misleading extrapolations, this engine adheres to the following business constraints:
+                    </p>
+                    <div class="d-flex flex-column gap-2">
+                        {% for assumption in forecast.assumptions %}
+                        <div class="d-flex align-items-start gap-2 small">
+                            <i class="bi bi-check-circle-fill text-success flex-shrink-0 mt-1"></i>
+                            <div>{{ assumption }}</div>
+                        </div>
+                        {% endfor %}
+                        <div class="d-flex align-items-start gap-2 small">
+                            <i class="bi bi-shield-check text-primary flex-shrink-0 mt-1"></i>
+                            <div><b>Zero Pickled Artifacts:</b> Regression models are calculated strictly on-demand in memory; no untrusted model files or pickles are stored.</div>
+                        </div>
+                        <div class="d-flex align-items-start gap-2 small">
+                            <i class="bi bi-lock text-primary flex-shrink-0 mt-1"></i>
+                            <div><b>Role Data Isolation:</b> Representatives only forecast using their personal verified sales.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Safe JSON Scripting via Django json_script -->
+{{ forecast_chart|json_script:"forecast-chart-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const chartEl = document.getElementById('forecast-chart-data');
+    if (chartEl) {
+        const chartData = JSON.parse(chartEl.textContent);
+        const ctx = document.getElementById('forecastComparisonChart');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Historical Actual Revenue (₹)',
+                            data: chartData.history_data,
+                            borderColor: '#7C3AED',
+                            backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                            pointBackgroundColor: '#7C3AED',
+                            pointRadius: 4,
+                            fill: true,
+                            tension: 0.2
+                        },
+                        {
+                            label: 'Future Forecast (₹)',
+                            data: chartData.forecast_data,
+                            borderColor: '#EC4899',
+                            borderDash: [5, 5],
+                            backgroundColor: 'rgba(236, 72, 153, 0.08)',
+                            pointBackgroundColor: '#EC4899',
+                            pointRadius: 5,
+                            fill: true,
+                            tension: 0.2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => ctx.dataset.label + ': ₹' + Number(ctx.raw || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

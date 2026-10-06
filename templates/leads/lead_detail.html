@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ lead.full_name }} ({{ lead.lead_code }}) | Leads Pipeline | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'leads:lead_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to Directory
+</a>
+<a href="{% url 'leads:lead_edit' lead.pk %}" class="btn btn-primary">
+    <i class="bi bi-pencil me-1"></i> Edit Lead
+</a>
+{% if can_convert %}
+<a href="{% url 'leads:lead_convert' lead.pk %}" class="btn btn-success">
+    <i class="bi bi-person-check-fill me-1"></i> Convert to Customer
+</a>
+{% endif %}
+<form method="post" action="{% url 'leads:lead_score' lead.pk %}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <button type="submit" class="btn btn-outline-info" title="Recalculate explainable AI score">
+        <i class="bi bi-stars me-1"></i> Rescore Lead
+    </button>
+</form>
+{% if user.is_admin and lead.is_active %}
+<a href="{% url 'leads:lead_archive' lead.pk %}" class="btn btn-outline-warning">
+    <i class="bi bi-archive me-1"></i> Archive
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<!-- Top Identity Card -->
+<div class="crm-card mb-4">
+    <div class="row align-items-center gy-3">
+        <div class="col-md-auto text-center text-md-start">
+            <div class="profile-avatar bg-primary-subtle text-primary" style="width: 72px; height: 72px; font-size: 2rem;">
+                {{ lead.full_name|slice:":1"|upper }}
+            </div>
+        </div>
+        <div class="col">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                <h3 class="h4 fw-bold text-dark mb-0">{{ lead.full_name }}</h3>
+                <span class="badge bg-light text-dark border font-monospace">{{ lead.lead_code }}</span>
+                {% if lead.status == 'NEW' %}
+                    <span class="badge-lead badge-lead-new"><i class="bi bi-sparkle"></i> New</span>
+                {% elif lead.status == 'CONTACTED' %}
+                    <span class="badge-lead badge-lead-contacted"><i class="bi bi-chat-dots"></i> Contacted</span>
+                {% elif lead.status == 'QUALIFIED' %}
+                    <span class="badge-lead badge-lead-qualified"><i class="bi bi-check2-circle"></i> Qualified</span>
+                {% elif lead.status == 'PROPOSAL' %}
+                    <span class="badge-lead badge-lead-proposal"><i class="bi bi-file-text"></i> Proposal</span>
+                {% elif lead.status == 'NEGOTIATION' %}
+                    <span class="badge-lead badge-lead-negotiation"><i class="bi bi-cash-coin"></i> Negotiation</span>
+                {% elif lead.status == 'WON' %}
+                    <span class="badge-lead badge-lead-won"><i class="bi bi-trophy-fill"></i> Closed Won</span>
+                {% elif lead.status == 'LOST' %}
+                    <span class="badge-lead badge-lead-lost"><i class="bi bi-x-circle"></i> Closed Lost</span>
+                {% endif %}
+
+                {% if lead.is_converted %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-check-all me-1"></i> Converted to Customer:
+                        <a href="{% url 'accounts:customer_detail' lead.converted_customer.pk %}" class="fw-bold text-success text-decoration-none">
+                            {{ lead.converted_customer.customer_code }}
+                        </a>
+                    </span>
+                {% endif %}
+
+                {% if not lead.is_active %}
+                    <span class="badge bg-secondary-subtle text-secondary border">Archived</span>
+                {% endif %}
+            </div>
+            <div class="text-secondary small d-flex flex-wrap gap-3 mt-1">
+                <span><i class="bi bi-building text-muted me-1"></i>{{ lead.company|default:"Individual Lead" }}</span>
+                <span><i class="bi bi-envelope text-muted me-1"></i>{{ lead.email }}</span>
+                <span><i class="bi bi-telephone text-muted me-1"></i>{{ lead.phone|default:"-" }}</span>
+                <span><i class="bi bi-tag text-muted me-1"></i>Source: <strong>{{ lead.get_source_display }}</strong></span>
+            </div>
+        </div>
+        <div class="col-md-auto text-md-end border-start-md ps-md-4">
+            <div class="small text-muted mb-1">Estimated Deal Value</div>
+            <div class="h3 fw-bold text-dark font-monospace mb-0">₹{{ lead.estimated_value|floatformat:2 }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Visual Pipeline Progress Bar -->
+<div class="crm-card mb-4 py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2">
+        <span class="small fw-bold text-uppercase text-secondary" style="letter-spacing: 0.5px;">Pipeline Progression</span>
+        <span class="badge bg-light text-dark border small">Current Stage: {{ lead.get_status_display }}</span>
+    </div>
+    <div class="row g-2 text-center small">
+        {% for stage_code, stage_label in pipeline_stages %}
+        <div class="col">
+            <div class="p-2 rounded border {% if lead.status == stage_code %}bg-primary text-white fw-bold shadow-sm{% elif lead.status == 'WON' and stage_code != 'LOST' %}bg-success-subtle text-success border-success-subtle{% else %}bg-light text-muted{% endif %}">
+                {{ stage_label }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: AI Score & Explainability -->
+    <div class="col-lg-7">
+        <!-- AI Lead Scoring Foundation Card -->
+        <div class="crm-card mb-4 border-start border-primary border-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-stars text-primary me-2"></i>AI Lead Conversion Score
+                    </h5>
+                    <div class="small text-muted mt-1">
+                        Method:
+                        <strong>{{ lead.get_scoring_method_display }}</strong>
+                        {% if lead.last_scored_at %}
+                            &bull; Scored on {{ lead.last_scored_at|date:"M d, Y H:i" }}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="text-end">
+                    <form method="post" action="{% url 'leads:lead_score' lead.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary shadow-sm" title="Recalculate AI score">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Score
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Score Visual Highlights -->
+            <div class="row align-items-center g-3 mb-4 p-3 bg-light rounded-3">
+                <div class="col-auto">
+                    <div class="text-center">
+                        <div class="display-5 fw-bold font-monospace {% if lead.probability_score >= 70 %}text-success{% elif lead.probability_score >= 40 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ lead.probability_score }}%
+                        </div>
+                        <div class="small text-muted fw-bold">Conversion Probability</div>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="progress mb-2" style="height: 10px;">
+                        <div class="progress-bar {% if lead.probability_score >= 70 %}bg-success{% elif lead.probability_score >= 40 %}bg-warning{% else %}bg-danger{% endif %}"
+                             role="progressbar"
+                             style="width: {{ lead.probability_score }}%;"
+                             aria-valuenow="{{ lead.probability_score }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100"></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center small">
+                        <span class="text-muted">Priority:</span>
+                        {% if lead.ai_priority == 'HIGH' %}
+                            <span class="badge-priority badge-priority-high"><i class="bi bi-fire"></i> High Priority</span>
+                        {% elif lead.ai_priority == 'MEDIUM' %}
+                            <span class="badge-priority badge-priority-medium"><i class="bi bi-dash-circle"></i> Medium Priority</span>
+                        {% else %}
+                            <span class="badge-priority badge-priority-low"><i class="bi bi-arrow-down-circle"></i> Low Priority</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explainable Factor Breakdown -->
+            <h6 class="fw-bold text-dark small text-uppercase mb-3" style="letter-spacing: 0.5px;">
+                <i class="bi bi-list-check me-1 text-secondary"></i>Scoring Factors Breakdown
+            </h6>
+            {% if lead.scoring_explanation %}
+            <div class="list-group list-group-flush border rounded-3 overflow-hidden">
+                {% for item in lead.scoring_explanation %}
+                <div class="list-group-item d-flex justify-content-between align-items-start py-2 px-3">
+                    <div class="me-3">
+                        <div class="fw-bold text-dark small">{{ item.factor }}</div>
+                        <div class="text-muted small">{{ item.detail }}</div>
+                    </div>
+                    <span class="badge {% if item.type == 'positive' %}bg-success-subtle text-success border border-success-subtle{% elif item.type == 'negative' %}bg-danger-subtle text-danger border border-danger-subtle{% else %}bg-light text-secondary border{% endif %} font-monospace">
+                        {{ item.impact }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="p-3 bg-light rounded text-center text-muted small">
+                No scoring breakdown available yet. Click "Refresh Score" to calculate.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Status History Timeline Card -->
+        <div class="crm-card mb-4">
+            <h5 class="fw-bold text-dark mb-3 pb-2 border-bottom">
+                <i class="bi bi-clock-history text-secondary me-2"></i>Status & Transition Audit History
+            </h5>
+            {% if history %}
+            <div class="timeline position-relative ps-3 border-start">
+                {% for h in history %}
+                <div class="mb-3 position-relative ps-3">
+                    <div class="d-flex justify-content-between align-items-center small">
+                        <div>
+                            <span class="fw-bold text-dark">
+                                {% if h.old_status %}{{ h.old_status }} &rarr; {% endif %}{{ h.new_status }}
+                            </span>
+                            <span class="text-muted ms-2">by {{ h.changed_by.full_name|default:h.changed_by.username|default:"System" }}</span>
+                        </div>
+                        <span class="text-muted font-monospace small">{{ h.created_at|date:"M d, Y H:i" }}</span>
+                    </div>
+                    {% if h.notes %}
+                    <div class="text-secondary small mt-1 p-2 bg-light rounded">{{ h.notes }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">No status transitions recorded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Details, Assignment, Quick Transitions & Touchpoints -->
+    <div class="col-lg-5">
+        <!-- Quick Pipeline Stage Transition Card -->
+        <div class="crm-card mb-4">
+            <h6 class="fw-bold text-dark mb-3 pb-2 border-bottom">
+                <i class="bi bi-sliders text-primary me-2"></i>Update Stage
+            </h6>
+            <form method="post" action="{% url 'leads:lead_status' lead.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <div class="mb-3">
+                    <label class="form-label small text-muted">New Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        {% for val, label in pipeline_stages %}
+                            <option value="{{ val }}" {% if lead.status == val %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                        <option value="LOST" {% if lead.status == 'LOST' %}selected{% endif %}>Closed Lost</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Audit Note (Optional)</label>
+                    <input type="text" name="notes" class="form-control form-control-sm" placeholder="e.g. Budget approved by decision maker">
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="bi bi-check2-circle me-1"></i> Apply Status Change
+                </button>
+            </form>
+        </div>
+
+        <!-- Assigned Staff & Management Card -->
+        <div class="crm-card mb-4">
+            <h6 class="fw-bold text-dark mb-3 pb-2 border-bottom">
+                <i class="bi bi-person-badge text-primary me-2"></i>Sales Representative
+            </h6>
+            <div class="d-flex align-items-center gap-2 mb-3">
+                <div class="profile-avatar bg-primary" style="width: 40px; height: 40px; font-size: 0.95rem;">
+                    {{ lead.assigned_staff.user.full_name|default:lead.assigned_staff.user.username|default:"U"|slice:":1"|upper }}
+                </div>
+                <div>
+                    <div class="fw-bold text-dark">
+                        {{ lead.assigned_staff.user.full_name|default:"Unassigned" }}
+                    </div>
+                    <div class="text-muted small">{{ lead.assigned_staff.designation|default:"Sales Team" }}</div>
+                </div>
+            </div>
+
+            {% if user.is_admin and assign_form %}
+            <!-- Admin Reassignment Form -->
+            <form method="post" action="{% url 'leads:lead_assign' lead.pk %}" class="mt-3 pt-3 border-top">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <label class="form-label small text-muted">Reassign Lead</label>
+                <div class="input-group input-group-sm">
+                    {{ assign_form.assigned_staff }}
+                    <button type="submit" class="btn btn-outline-primary">Reassign</button>
+                </div>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Notes & Requirements Card -->
+        <div class="crm-card mb-4">
+            <h6 class="fw-bold text-dark mb-2 pb-2 border-bottom">
+                <i class="bi bi-sticky text-warning me-2"></i>Lead Notes & Requirements
+            </h6>
+            {% if lead.notes %}
+                <div class="text-secondary small" style="white-space: pre-line;">{{ lead.notes }}</div>
+            {% else %}
+                <div class="text-muted small">No notes recorded for this lead yet.</div>
+            {% endif %}
+        </div>
+
+        <!-- Recent Touchpoints Summary -->
+        <div class="crm-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-chat-dots text-info me-2"></i>Touchpoints & Reminders
+                </h6>
+                <span class="badge bg-light text-dark border small">
+                    {{ interactions.count }} Touchpoints
+                </span>
+            </div>
+            {% if interactions %}
+            <div class="list-group list-group-flush mb-3">
+                {% for it in interactions %}
+                <div class="list-group-item px-0 py-2">
+                    <div class="d-flex justify-content-between small">
+                        <span class="fw-bold text-dark">{{ it.get_interaction_type_display }}</span>
+                        <span class="text-muted">{{ it.interaction_date|date:"M d, Y" }}</span>
+                    </div>
+                    <div class="text-secondary small text-truncate">{{ it.subject }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-3">No interactions logged yet for this lead.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

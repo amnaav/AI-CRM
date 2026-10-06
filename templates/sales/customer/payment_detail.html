@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'sales:customer_payment_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Receipts
+    </a>
+    <a href="{% url 'sales:customer_payment_receipt_print' payment.pk %}" target="_blank" class="btn btn-outline-primary" id="btn-print-receipt">
+        <i class="bi bi-printer me-1"></i> Print Receipt
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="crm-card mb-4">
+            <!-- Receipt Header -->
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="fw-bold text-dark mb-0">{{ payment.payment_number }}</h4>
+                        {% if payment.is_reversed %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">Reversed / Refunded</span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">Payment Confirmed</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Receipt Date: <span class="fw-semibold text-dark">{{ payment.payment_date|date:"F d, Y H:i" }}</span>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="text-muted small text-uppercase">Amount Paid</div>
+                    <div class="h3 fw-bold {% if payment.is_reversed %}text-muted text-decoration-line-through{% else %}text-success{% endif %} mb-0">
+                        ₹{{ payment.amount|floatformat:2 }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Details Table -->
+            <table class="table table-bordered mb-4">
+                <tbody>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase" style="width: 30%;">Payment Method</th>
+                        <td><span class="badge bg-light text-dark border">{{ payment.get_payment_method_display }}</span></td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Transaction Reference</th>
+                        <td><code>{{ payment.transaction_reference|default:"None (Cash / Direct)" }}</code></td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Linked Invoice</th>
+                        <td>
+                            <a href="{% url 'sales:customer_invoice_detail' invoice.pk %}" class="fw-bold text-primary text-decoration-none">
+                                {{ invoice.invoice_number }}
+                            </a>
+                            <span class="text-muted small ms-2">(Total: ₹{{ invoice.total_amount|floatformat:2 }}, Current Balance: ₹{{ invoice.balance_amount|floatformat:2 }})</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Account Holder</th>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ payment.customer.user.full_name|default:payment.customer.user.username }}</div>
+                            {% if payment.customer.company %}
+                            <div class="small text-muted">{{ payment.customer.company }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if payment.notes %}
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Remarks</th>
+                        <td class="text-secondary">{{ payment.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <!-- Reversal Notice if reversed -->
+            {% if payment.is_reversed %}
+            <div class="alert alert-danger mb-0">
+                <h6 class="fw-bold text-danger mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> Transaction Reversed</h6>
+                <div class="small text-danger">
+                    This payment was voided or refunded on {{ payment.reversed_at|date:"d M, Y H:i" }}.
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

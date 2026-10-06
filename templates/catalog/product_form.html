@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9 col-xl-8">
+        <div class="crm-card">
+            <!-- Header -->
+            <div class="d-flex align-items-center justify-content-between pb-3 mb-4 border-bottom">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="bi bi-box-seam fs-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="fw-bold mb-0 text-dark">{{ action }} Catalog Item</h4>
+                        <span class="text-muted small">Configure product or service specifications, pricing, and stock controls</span>
+                    </div>
+                </div>
+                <a href="{% if item %}{% url 'catalog:product_detail' pk=item.pk %}{% else %}{% url 'catalog:product_list' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i> Back
+                </a>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" novalidate id="product-form">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger py-2 mb-3">
+                    {% for err in form.non_field_errors %}{{ err }}<br>{% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Basic Information -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-8">
+                        <label for="{{ form.product_name.id_for_label }}" class="form-label fw-semibold">
+                            Item Name <span class="text-danger">*</span>
+                        </label>
+                        {{ form.product_name }}
+                        {% if form.product_name.errors %}
+                        <div class="text-danger small mt-1">{% for e in form.product_name.errors %}{{ e }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-4">
+                        <label for="{{ form.item_type.id_for_label }}" class="form-label fw-semibold">
+                            Item Type <span class="text-danger">*</span>
+                        </label>
+                        {{ form.item_type }}
+                        {% if form.item_type.errors %}
+                        <div class="text-danger small mt-1">{% for e in form.item_type.errors %}{{ e }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.category.id_for_label }}" class="form-label fw-semibold">
+                            Category <span class="text-danger">*</span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                        <div class="text-danger small mt-1">{% for e in form.category.errors %}{{ e }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="{{ form.status.id_for_label }}" class="form-label fw-semibold">
+                            Status <span class="text-danger">*</span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                        <div class="text-danger small mt-1">{% for e in form.status.errors %}{{ e }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Pricing -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.unit_price.id_for_label }}" class="form-label fw-semibold">
+                            Unit Price (₹) <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light">₹</span>
+                            {{ form.unit_price }}
+                        </div>
+                        <div class="form-text text-muted">Must be non-negative.</div>
+                        {% if form.unit_price.errors %}
+                        <div class="text-danger small mt-1">{% for e in form.unit_price.errors %}{{ e }}{% endfor %}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="{{ form.image.id_for_label }}" class="form-label fw-semibold">
+                            Item Image (Optional)
+                        </label>
+                        {{ form.image }}
+                        <div class="form-text text-muted">JPEG, PNG, WebP (max 5 MB). Safely renamed using UUID.</div>
+                        {% if form.image.errors %}
+                        <div class="text-danger small mt-1">{% for e in form.image.errors %}{{ e }}{% endfor %}</div>
+                        {% endif %}
+
+                        {% if item and item.image %}
+                        <div class="mt-2 d-flex align-items-center gap-2">
+                            <img src="{{ item.image.url }}" alt="{{ item.product_name }}" class="rounded border" style="width: 50px; height: 50px; object-fit: cover;">
+                            <span class="small text-muted">Current image</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-3">
+                    <label for="{{ form.description.id_for_label }}" class="form-label fw-semibold">
+                        Description / Specifications
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <div class="text-danger small mt-1">{% for e in form.description.errors %}{{ e }}{% endfor %}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Physical Inventory Section (Hidden / disabled for Services) -->
+                <div id="stock-control-section" class="p-3 border rounded bg-light mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">
+                            <i class="bi bi-boxes me-1 text-primary"></i> Inventory & Stock Controls
+                        </h6>
+                        <span class="badge bg-secondary-subtle text-secondary" id="service-notice" style="display: none;">
+                            Not applicable for Services
+                        </span>
+                    </div>
+
+                    {% if item and item.has_sales_history %}
+                    <div class="alert alert-warning py-2 small mb-3">
+                        <i class="bi bi-shield-exclamation me-1"></i>
+                        Direct stock edits are locked because this item has sales history. Use the
+                        <a href="{% url 'catalog:product_detail' pk=item.pk %}#adjust-stock" class="fw-bold text-dark text-decoration-underline">Stock Adjustment</a> form.
+                    </div>
+                    {% endif %}
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="{{ form.stock_quantity.id_for_label }}" class="form-label fw-semibold">
+                                Stock Quantity
+                            </label>
+                            {{ form.stock_quantity }}
+                            {% if form.stock_quantity.help_text %}
+                            <div class="form-text text-muted small">{{ form.stock_quantity.help_text }}</div>
+                            {% endif %}
+                            {% if form.stock_quantity.errors %}
+                            <div class="text-danger small mt-1">{% for e in form.stock_quantity.errors %}{{ e }}{% endfor %}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.reorder_level.id_for_label }}" class="form-label fw-semibold">
+                                Reorder Level (Low Stock Threshold)
+                            </label>
+                            {{ form.reorder_level }}
+                            <div class="form-text text-muted small">Alert triggered when stock falls to or below this quantity.</div>
+                            {% if form.reorder_level.errors %}
+                            <div class="text-danger small mt-1">{% for e in form.reorder_level.errors %}{{ e }}{% endfor %}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit / Cancel -->
+                <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                    <a href="{% if item %}{% url 'catalog:product_detail' pk=item.pk %}{% else %}{% url 'catalog:product_list' %}{% endif %}" class="btn btn-light border">Cancel</a>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="bi bi-check-lg me-1"></i> Save Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const itemTypeSelect = document.getElementById('id_item_type');
+    const stockSection = document.getElementById('stock-control-section');
+    const serviceNotice = document.getElementById('service-notice');
+    const stockQtyInput = document.getElementById('id_stock_quantity');
+    const reorderInput = document.getElementById('id_reorder_level');
+
+    function toggleStockControls() {
+        if (!itemTypeSelect) return;
+        const isService = itemTypeSelect.value === 'SERVICE';
+        if (isService) {
+            stockSection.classList.add('opacity-50');
+            serviceNotice.style.display = 'inline-block';
+            if (stockQtyInput) {
+                stockQtyInput.value = '0';
+                stockQtyInput.disabled = true;
+            }
+            if (reorderInput) {
+                reorderInput.value = '0';
+                reorderInput.disabled = true;
+            }
+        } else {
+            stockSection.classList.remove('opacity-50');
+            serviceNotice.style.display = 'none';
+            {% if not item or not item.has_sales_history %}
+            if (stockQtyInput) stockQtyInput.disabled = false;
+            {% endif %}
+            if (reorderInput) reorderInput.disabled = false;
+        }
+    }
+
+    if (itemTypeSelect) {
+        itemTypeSelect.addEventListener('change', toggleStockControls);
+        toggleStockControls();
+    }
+});
+</script>
+{% endblock %}

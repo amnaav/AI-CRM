@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'sales:payment_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Payments
+    </a>
+    <a href="{% url 'sales:payment_receipt_print' payment.pk %}" target="_blank" class="btn btn-outline-primary" id="btn-print-receipt">
+        <i class="bi bi-printer me-1"></i> Print Receipt
+    </a>
+    {% if not payment.is_reversed and user.is_admin %}
+    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#reversePaymentModal" id="btn-reverse-payment">
+        <i class="bi bi-arrow-counterclockwise me-1"></i> Reverse Payment
+    </button>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="crm-card mb-4">
+            <!-- Receipt Header -->
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-3 mb-4">
+                <div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h4 class="fw-bold text-dark mb-0">{{ payment.payment_number }}</h4>
+                        {% if payment.is_reversed %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-1">Reversed / Refunded</span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">Payment Completed</span>
+                        {% endif %}
+                    </div>
+                    <div class="text-muted small mt-1">
+                        Recorded on: <span class="fw-semibold text-dark">{{ payment.payment_date|date:"F d, Y H:i" }}</span>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <div class="text-muted small text-uppercase">Payment Amount</div>
+                    <div class="h3 fw-bold {% if payment.is_reversed %}text-muted text-decoration-line-through{% else %}text-success{% endif %} mb-0">
+                        ₹{{ payment.amount|floatformat:2 }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Details Table -->
+            <table class="table table-bordered mb-4">
+                <tbody>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase" style="width: 30%;">Payment Method</th>
+                        <td><span class="badge bg-light text-dark border">{{ payment.get_payment_method_display }}</span></td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Transaction Reference</th>
+                        <td><code>{{ payment.transaction_reference|default:"None (Cash)" }}</code></td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Linked Invoice</th>
+                        <td>
+                            <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="fw-bold text-primary text-decoration-none">
+                                {{ invoice.invoice_number }}
+                            </a>
+                            <span class="text-muted small ms-2">(Invoice Total: ₹{{ invoice.total_amount|floatformat:2 }}, Balance: ₹{{ invoice.balance_amount|floatformat:2 }})</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Customer</th>
+                        <td>
+                            <div class="fw-semibold text-dark">{{ payment.customer.user.full_name|default:payment.customer.user.username }}</div>
+                            {% if payment.customer.company %}
+                            <div class="small text-muted">{{ payment.customer.company }}</div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Received / Verified By</th>
+                        <td>{{ payment.received_by.full_name|default:payment.received_by.username|default:"System" }}</td>
+                    </tr>
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Idempotency Token</th>
+                        <td><code class="small text-secondary">{{ payment.idempotency_key }}</code></td>
+                    </tr>
+                    {% if payment.notes %}
+                    <tr>
+                        <th class="bg-light text-muted small text-uppercase">Payment Remarks</th>
+                        <td class="text-secondary">{{ payment.notes }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+
+            <!-- Reversal Audit Box -->
+            {% if payment.is_reversed %}
+            <div class="alert alert-danger mb-0">
+                <h6 class="fw-bold text-danger mb-2"><i class="bi bi-exclamation-triangle-fill me-1"></i> Transaction Reversed & Voided</h6>
+                <div class="small">
+                    <div><strong>Reversed At:</strong> {{ payment.reversed_at|date:"d M, Y H:i" }}</div>
+                    <div><strong>Reversed By:</strong> {{ payment.reversed_by.full_name|default:payment.reversed_by.username|default:"Administrator" }}</div>
+                    <div class="mt-1"><strong>Reason for Reversal:</strong> {{ payment.reversal_reason }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Reversal Modal -->
+{% if not payment.is_reversed and user.is_admin %}
+<div class="modal fade" id="reversePaymentModal" tabindex="-1" aria-labelledby="reversePaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger-subtle text-danger">
+                <h5 class="modal-title" id="reversePaymentModalLabel"><i class="bi bi-arrow-counterclockwise me-1"></i> Reverse Payment {{ payment.payment_number }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'sales:payment_reverse' payment.pk %}" id="paymentReversalForm">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p>Are you sure you want to reverse payment <strong>{{ payment.payment_number }}</strong> of <strong>₹{{ payment.amount|floatformat:2 }}</strong>?</p>
+                    <div class="alert alert-warning small mb-3">
+                        <i class="bi bi-shield-exclamation me-1"></i> <strong>Effects of Reversal:</strong>
+                        <ul class="mb-0 ps-3 mt-1">
+                            <li>Invoice {{ invoice.invoice_number }} outstanding balance will increase by ₹{{ payment.amount|floatformat:2 }}.</li>
+                            <li>If the sales order was marked completed, it will revert to confirmed.</li>
+                            <li>This action is final and will be permanently recorded in the audit log.</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Mandatory Justification / Reason <span class="text-danger">*</span></label>
+                        {{ reversal_form.reversal_reason }}
+                        <div class="form-text">Explain why this payment is being voided or refunded.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger" id="btn-submit-reverse" onclick="this.disabled=true;this.innerHTML='Processing Reversal...';this.form.submit();">
+                        Confirm Reversal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

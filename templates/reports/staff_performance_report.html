@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sales Staff Performance Report | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h4 fw-bold text-dark mb-1">Sales Staff Quota & Performance Report</h2>
+            <p class="text-muted small mb-0">Period: <b>{{ current_month_label }}</b> | {% if is_admin %}All Sales Representatives{% else %}Personal Scope ({{ user.get_full_name|default:user.username }}){% endif %}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <!-- Export Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-outline-success btn-sm dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-download me-1"></i> Export Report
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="?export=csv"><i class="bi bi-filetype-csv text-primary me-2"></i> CSV (.csv)</a></li>
+                    <li><a class="dropdown-item" href="?export=xlsx"><i class="bi bi-file-earmark-excel text-success me-2"></i> Excel (.xlsx)</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="?export=pdf"><i class="bi bi-file-earmark-pdf text-danger me-2"></i> PDF Document (.pdf)</a></li>
+                </ul>
+            </div>
+            <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Reports Catalog
+            </a>
+        </div>
+    </div>
+
+    <!-- Performance Table -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Staff Code</th>
+                            <th>Representative</th>
+                            <th>Designation</th>
+                            <th>Department</th>
+                            <th class="text-end">Monthly Target</th>
+                            <th class="text-end">Month Closed</th>
+                            <th class="text-center">Achievement</th>
+                            <th class="text-end">Lifetime Revenue</th>
+                            <th class="text-center">Lifetime Orders</th>
+                            <th class="text-center">Leads Won</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in report_rows %}
+                        <tr>
+                            <td class="fw-bold">{{ row.staff_code }}</td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ row.name }}</div>
+                            </td>
+                            <td>{{ row.designation }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ row.department }}</span></td>
+                            <td class="text-end fw-semibold">₹{{ row.assigned_target|floatformat:2 }}</td>
+                            <td class="text-end fw-bold text-success">₹{{ row.current_month_revenue|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <span class="badge
+                                    {% if row.target_achievement_pct >= 100 %}bg-success
+                                    {% elif row.target_achievement_pct >= 50 %}bg-primary
+                                    {% else %}bg-warning text-dark{% endif %}">
+                                    {{ row.target_achievement_pct }}%
+                                </span>
+                            </td>
+                            <td class="text-end fw-bold text-dark">₹{{ row.lifetime_revenue|floatformat:2 }}</td>
+                            <td class="text-center fw-semibold">{{ row.lifetime_orders }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-success-subtle text-success">{{ row.won_leads_count }}</span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5 text-muted">
+                                <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+                                No performance records available.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sales Orders Report | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h4 fw-bold text-dark mb-1">Sales Orders & Line Items Report</h2>
+            <p class="text-muted small mb-0">Total matching orders: <b>{{ total_count }}</b></p>
+        </div>
+        <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Reports Catalog
+        </a>
+    </div>
+
+    <!-- Filter Bar with Status Selector -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3 p-md-4">
+            <form method="get" class="row g-2 align-items-center" id="reportFilterForm">
+                <input type="hidden" name="export" id="exportFormatInput" value="">
+
+                <div class="col-12 mb-2">
+                    <div class="btn-group btn-group-sm flex-wrap w-100" role="group">
+                        <a href="?preset=all{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'all' or not active_preset %}btn-primary{% else %}btn-outline-secondary{% endif %}">All Time</a>
+                        <a href="?preset=today{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Today</a>
+                        <a href="?preset=this_month{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'this_month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Month</a>
+                        <a href="?preset=last_month{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'last_month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Last Month</a>
+                        <a href="?preset=this_quarter{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'this_quarter' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Quarter</a>
+                        <a href="?preset=this_year{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'this_year' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Year</a>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 col-md-2">
+                    <label class="form-label small text-muted mb-1">From Date</label>
+                    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}">
+                </div>
+                <div class="col-sm-6 col-md-2">
+                    <label class="form-label small text-muted mb-1">To Date</label>
+                    <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}">
+                </div>
+                <div class="col-sm-6 col-md-2">
+                    <label class="form-label small text-muted mb-1">Order Status</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All Statuses</option>
+                        {% for st_val, st_label in status_choices %}
+                        <option value="{{ st_val }}" {% if selected_status == st_val %}selected{% endif %}>{{ st_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <label class="form-label small text-muted mb-1">Search Keywords</label>
+                    <input type="text" name="q" class="form-control form-control-sm" placeholder="SO number, customer name..." value="{{ q }}">
+                </div>
+                <div class="col-sm-12 col-md-3 d-flex align-items-end gap-2 mt-3 mt-md-0">
+                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1" onclick="document.getElementById('exportFormatInput').value='';">
+                        <i class="bi bi-funnel me-1"></i> Apply
+                    </button>
+                    <a href="?" class="btn btn-outline-secondary btn-sm" title="Clear Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+
+                    <!-- Export Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i> Export
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li><button type="button" class="dropdown-item" onclick="triggerExport('csv')"><i class="bi bi-filetype-csv text-primary me-2"></i> CSV (.csv)</button></li>
+                            <li><button type="button" class="dropdown-item" onclick="triggerExport('xlsx')"><i class="bi bi-file-earmark-excel text-success me-2"></i> Excel (.xlsx)</button></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button type="button" class="dropdown-item" onclick="triggerExport('pdf')"><i class="bi bi-file-earmark-pdf text-danger me-2"></i> PDF (.pdf)</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Sales Table Preview -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Sale #</th>
+                            <th>Customer</th>
+                            <th>Sales Staff</th>
+                            <th>Sale Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-end">Discount</th>
+                            <th class="text-end">Tax</th>
+                            <th class="text-end">Net Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sale in page_obj %}
+                        <tr>
+                            <td class="fw-bold">
+                                <a href="{% url 'sales:sale_detail' sale.id %}" class="text-decoration-none text-primary">{{ sale.sale_number }}</a>
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ sale.customer.company|default:sale.customer.user.get_full_name }}</div>
+                                <small class="text-muted">{{ sale.customer.customer_code }}</small>
+                            </td>
+                            <td>
+                                {% if sale.sales_staff %}
+                                <span class="badge bg-light text-dark border">{{ sale.sales_staff.user.get_full_name|default:sale.sales_staff.user.username }}</span>
+                                {% else %}
+                                <span class="text-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">{{ sale.sale_date|date:"M d, Y" }}</td>
+                            <td>
+                                {% if sale.status == 'COMPLETED' %}
+                                <span class="badge bg-success">Completed</span>
+                                {% elif sale.status == 'CONFIRMED' %}
+                                <span class="badge bg-primary">Confirmed</span>
+                                {% elif sale.status == 'DRAFT' %}
+                                <span class="badge bg-secondary">Draft</span>
+                                {% elif sale.status == 'CANCELLED' %}
+                                <span class="badge bg-danger">Cancelled</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">₹{{ sale.subtotal|floatformat:2 }}</td>
+                            <td class="text-end text-muted">₹{{ sale.discount|floatformat:2 }}</td>
+                            <td class="text-end text-muted">₹{{ sale.tax_amount|floatformat:2 }}</td>
+                            <td class="text-end fw-bold text-success">₹{{ sale.net_amount|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-cart-x fs-1 d-block mb-2"></i>
+                                No sales orders match the selected filters.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <small class="text-muted">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }}</small>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">Previous</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function triggerExport(format) {
+    const form = document.getElementById('reportFilterForm');
+    const exportInput = document.getElementById('exportFormatInput');
+    exportInput.value = format;
+    form.submit();
+    setTimeout(() => { exportInput.value = ''; }, 1000);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,206 @@
+{% load static %}
+<aside class="crm-sidebar" id="mainSidebar">
+    <!-- Brand Header -->
+    <div class="sidebar-brand">
+        <a href="{% url 'dashboard:index' %}">
+            <img src="{% static 'images/logo.svg' %}" alt="AI CRM Logo" width="34" height="34">
+            <span>{{ SYSTEM_NAME }}</span>
+        </a>
+    </div>
+
+    <!-- Navigation Menu -->
+    <nav class="sidebar-nav">
+        {% if user.is_admin %}
+        <!-- ADMIN NAVIGATION -->
+        <div class="sidebar-section-title">Core Operations</div>
+        <a href="{% url 'dashboard:admin_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i>
+            <span>Admin Dashboard</span>
+        </a>
+
+        <div class="sidebar-section-title">Relationship & Leads</div>
+        <a href="{% url 'accounts:customer_list' %}" class="sidebar-link {% if 'customers' in request.path %}active{% endif %}">
+            <i class="bi bi-people"></i>
+            <span>Customers</span>
+        </a>
+        <a href="{% url 'accounts:staff_list' %}" class="sidebar-link {% if 'staff' in request.path %}active{% endif %}">
+            <i class="bi bi-person-badge"></i>
+            <span>Sales Staff</span>
+        </a>
+        <a href="{% url 'leads:lead_list' %}" class="sidebar-link {% if 'leads' in request.path %}active{% endif %}">
+            <i class="bi bi-funnel"></i>
+            <span>Leads Pipeline</span>
+        </a>
+        <a href="{% url 'reminders:reminder_list' %}" class="sidebar-link {% if 'reminders' in request.path %}active{% endif %}">
+            <i class="bi bi-calendar-check"></i>
+            <span>Tasks & Reminders</span>
+        </a>
+        <a href="{% url 'interactions:interaction_list' %}" class="sidebar-link {% if 'interactions' in request.path %}active{% endif %}">
+            <i class="bi bi-chat-left-text"></i>
+            <span>Interactions</span>
+        </a>
+
+        <div class="sidebar-section-title">Commerce & Finance</div>
+        <a href="{% url 'catalog:product_list' %}" class="sidebar-link {% if 'catalog' in request.path and 'categories' not in request.path and 'portal' not in request.path %}active{% endif %}">
+            <i class="bi bi-box-seam"></i>
+            <span>Catalog & Stock</span>
+        </a>
+        <a href="{% url 'catalog:category_list' %}" class="sidebar-link {% if 'catalog/categories' in request.path %}active{% endif %}">
+            <i class="bi bi-tags"></i>
+            <span>Categories</span>
+        </a>
+        <a href="{% url 'sales:sale_list' %}" class="sidebar-link {% if 'sales' in request.path and 'invoices' not in request.path and 'payments' not in request.path and 'portal' not in request.path %}active{% endif %}">
+            <i class="bi bi-cart-check"></i>
+            <span>Sales Orders</span>
+        </a>
+        <a href="{% url 'sales:invoice_list' %}" class="sidebar-link {% if 'sales/invoices' in request.path and 'portal' not in request.path %}active{% endif %}">
+            <i class="bi bi-receipt"></i>
+            <span>Invoices</span>
+        </a>
+        <a href="{% url 'sales:payment_list' %}" class="sidebar-link {% if 'sales/payments' in request.path and 'portal' not in request.path %}active{% endif %}">
+            <i class="bi bi-credit-card"></i>
+            <span>Payments</span>
+        </a>
+
+        <div class="sidebar-section-title">Intelligence & System</div>
+        <a href="{% url 'ai_assistant:index' %}" class="sidebar-link {% if 'assistant' in request.path %}active{% endif %}">
+            <i class="bi bi-stars"></i>
+            <span>AI Assistant & Insights</span>
+        </a>
+        <a href="{% url 'reports:admin_analytics' %}" class="sidebar-link {% if 'reports/analytics' in request.path %}active{% endif %}">
+            <i class="bi bi-graph-up-arrow"></i>
+            <span>Executive Analytics</span>
+        </a>
+        <a href="{% url 'reports:sales_forecast' %}" class="sidebar-link {% if 'reports/forecast' in request.path %}active{% endif %}">
+            <i class="bi bi-magic"></i>
+            <span>AI Sales Forecasting</span>
+        </a>
+        <a href="{% url 'reports:index' %}" class="sidebar-link {% if 'reports' in request.path and 'analytics' not in request.path and 'forecast' not in request.path %}active{% endif %}">
+            <i class="bi bi-file-earmark-bar-graph"></i>
+            <span>Standard Reports</span>
+        </a>
+        <a href="{% url 'activity_logs:log_list' %}" class="sidebar-link {% if 'activity-logs' in request.path %}active{% endif %}">
+            <i class="bi bi-clock-history"></i>
+            <span>Activity Logs</span>
+        </a>
+
+        {% elif user.is_sales_staff %}
+        <!-- SALES STAFF NAVIGATION -->
+        <div class="sidebar-section-title">My Workspace</div>
+        <a href="{% url 'dashboard:staff_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'staff_dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i>
+            <span>My Dashboard</span>
+        </a>
+        <a href="{% url 'accounts:customer_list' %}" class="sidebar-link {% if 'customers' in request.path %}active{% endif %}">
+            <i class="bi bi-people"></i>
+            <span>Assigned Customers</span>
+        </a>
+        <a href="{% url 'leads:lead_list' %}" class="sidebar-link {% if 'leads' in request.path %}active{% endif %}">
+            <i class="bi bi-funnel"></i>
+            <span>Assigned Leads</span>
+        </a>
+        <a href="{% url 'reminders:reminder_list' %}" class="sidebar-link {% if 'reminders' in request.path %}active{% endif %}">
+            <i class="bi bi-calendar-check"></i>
+            <span>My Reminders</span>
+        </a>
+        <a href="{% url 'interactions:interaction_list' %}" class="sidebar-link {% if 'interactions' in request.path %}active{% endif %}">
+            <i class="bi bi-chat-dots"></i>
+            <span>Customer Touchpoints</span>
+        </a>
+
+        <div class="sidebar-section-title">Sales & Billing</div>
+        <a href="{% url 'catalog:product_list' %}" class="sidebar-link {% if 'catalog' in request.path and 'portal' not in request.path %}active{% endif %}">
+            <i class="bi bi-box-seam"></i>
+            <span>Products & Services</span>
+        </a>
+        <a href="{% url 'sales:sale_list' %}" class="sidebar-link {% if 'sales' in request.path and 'invoices' not in request.path and 'payments' not in request.path and 'portal' not in request.path %}active{% endif %}">
+            <i class="bi bi-cart-check"></i>
+            <span>My Sales</span>
+        </a>
+        <a href="{% url 'sales:invoice_list' %}" class="sidebar-link {% if 'sales/invoices' in request.path or 'sales/payments' in request.path %}active{% endif %}">
+            <i class="bi bi-receipt"></i>
+            <span>Invoices & Payments</span>
+        </a>
+
+        <div class="sidebar-section-title">Analytics & Forecasting</div>
+        <a href="{% url 'reports:staff_analytics' %}" class="sidebar-link {% if 'reports/analytics' in request.path %}active{% endif %}">
+            <i class="bi bi-graph-up-arrow"></i>
+            <span>Personal Analytics</span>
+        </a>
+        <a href="{% url 'reports:sales_forecast' %}" class="sidebar-link {% if 'reports/forecast' in request.path %}active{% endif %}">
+            <i class="bi bi-magic"></i>
+            <span>Personal Forecast</span>
+        </a>
+        <a href="{% url 'reports:index' %}" class="sidebar-link {% if 'reports' in request.path and 'analytics' not in request.path and 'forecast' not in request.path %}active{% endif %}">
+            <i class="bi bi-file-earmark-bar-graph"></i>
+            <span>My Reports</span>
+        </a>
+
+        <div class="sidebar-section-title">AI Assistance</div>
+        <a href="{% url 'leads:lead_list' %}?priority=HIGH" class="sidebar-link {% if 'leads' in request.path and 'priority=HIGH' in request.get_full_path %}active{% endif %}">
+            <i class="bi bi-stars"></i>
+            <span>AI Lead Suggestions</span>
+        </a>
+        <a href="{% url 'ai_assistant:index' %}" class="sidebar-link {% if 'assistant' in request.path %}active{% endif %}">
+            <i class="bi bi-robot"></i>
+            <span>Sales AI Assistant</span>
+        </a>
+
+        {% else %}
+        <!-- CUSTOMER NAVIGATION -->
+        <div class="sidebar-section-title">My Portal</div>
+        <a href="{% url 'dashboard:customer_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'customer_dashboard' %}active{% endif %}">
+            <i class="bi bi-speedometer2"></i>
+            <span>My Overview</span>
+        </a>
+        <a href="{% url 'catalog:customer_catalog' %}" class="sidebar-link {% if 'catalog/portal' in request.path %}active{% endif %}">
+            <i class="bi bi-box-seam"></i>
+            <span>Product Catalog</span>
+        </a>
+        <a href="{% url 'sales:customer_sale_list' %}" class="sidebar-link {% if 'sales/portal/purchases' in request.path %}active{% endif %}">
+            <i class="bi bi-cart-check"></i>
+            <span>My Purchases</span>
+        </a>
+        <a href="{% url 'sales:customer_invoice_list' %}" class="sidebar-link {% if 'sales/portal/invoices' in request.path %}active{% endif %}">
+            <i class="bi bi-receipt"></i>
+            <span>My Invoices</span>
+        </a>
+        <a href="{% url 'sales:customer_payment_list' %}" class="sidebar-link {% if 'sales/portal/payments' in request.path %}active{% endif %}">
+            <i class="bi bi-credit-card"></i>
+            <span>Payment Receipts</span>
+        </a>
+        <a href="{% url 'reminders:customer_reminder_list' %}" class="sidebar-link {% if 'reminders/portal' in request.path %}active{% endif %}">
+            <i class="bi bi-bell"></i>
+            <span>My Reminders</span>
+        </a>
+        <a href="{% url 'interactions:customer_interaction_list' %}" class="sidebar-link {% if 'interactions/portal' in request.path %}active{% endif %}">
+            <i class="bi bi-chat-left-text"></i>
+            <span>Communication History</span>
+        </a>
+        <a href="{% url 'ai_assistant:index' %}" class="sidebar-link {% if 'assistant' in request.path %}active{% endif %}">
+            <i class="bi bi-robot"></i>
+            <span>Customer AI Assistant</span>
+        </a>
+        {% endif %}
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+        <div class="d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2 overflow-hidden">
+                <div class="profile-avatar">
+                    {{ user.first_name|default:user.username|slice:":1"|upper }}
+                </div>
+                <div class="text-truncate">
+                    <div class="text-white small fw-bold text-truncate">{{ user.full_name|default:user.username }}</div>
+                    <span class="badge badge-role {% if user.is_admin %}badge-role-admin{% elif user.is_sales_staff %}badge-role-staff{% else %}badge-role-customer{% endif %}">
+                        {{ user.get_role_display }}
+                    </span>
+                </div>
+            </div>
+            <a href="{% url 'accounts:logout' %}" class="text-secondary hover-white" title="Logout" data-confirm="Are you sure you want to log out?">
+                <i class="bi bi-box-arrow-right fs-5"></i>
+            </a>
+        </div>
+    </div>
+</aside>

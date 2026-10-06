@@ -1,0 +1,600 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Executive Analytics Dashboard | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header with Quick Link to Forecasting -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <div>
+            <h2 class="h3 fw-bold text-dark mb-1">Executive Analytics Dashboard</h2>
+            <p class="text-muted small mb-0">High-level enterprise performance metrics, cash flow status, and sales trends.</p>
+        </div>
+        <div class="d-flex gap-2 mt-3 mt-md-0">
+            <a href="{% url 'reports:sales_forecast' %}" class="btn btn-outline-primary btn-sm fw-semibold">
+                <i class="bi bi-magic me-1"></i> AI Sales Forecast
+            </a>
+            <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-grid me-1"></i> All Reports
+            </a>
+        </div>
+    </div>
+
+    <!-- Date Range Filter Bar -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" class="row g-2 align-items-center">
+                <div class="col-12 mb-2">
+                    <div class="btn-group btn-group-sm flex-wrap w-100" role="group">
+                        <a href="?preset=all" class="btn {% if active_preset == 'all' or not active_preset %}btn-primary{% else %}btn-outline-secondary{% endif %}">All Time</a>
+                        <a href="?preset=today" class="btn {% if active_preset == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Today</a>
+                        <a href="?preset=this_month" class="btn {% if active_preset == 'this_month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Month</a>
+                        <a href="?preset=last_month" class="btn {% if active_preset == 'last_month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Last Month</a>
+                        <a href="?preset=this_quarter" class="btn {% if active_preset == 'this_quarter' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Quarter</a>
+                        <a href="?preset=this_year" class="btn {% if active_preset == 'this_year' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Year</a>
+                    </div>
+                </div>
+                <div class="col-sm-5 col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">From</span>
+                        <input type="date" name="start_date" class="form-control" value="{{ start_date }}">
+                    </div>
+                </div>
+                <div class="col-sm-5 col-md-4">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text">To</span>
+                        <input type="date" name="end_date" class="form-control" value="{{ end_date }}">
+                    </div>
+                </div>
+                <div class="col-sm-2 col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1">
+                        <i class="bi bi-funnel me-1"></i> Apply Filter
+                    </button>
+                    <a href="?" class="btn btn-outline-secondary btn-sm" title="Reset Filters">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- KPI Metric Cards Grid -->
+    <div class="row g-3 mb-4">
+        <!-- Confirmed Revenue -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-success">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Confirmed Revenue</div>
+                            <h3 class="fw-bold mb-0 text-success">₹{{ kpis.confirmed_revenue|floatformat:2 }}</h3>
+                            <small class="text-muted">Excludes draft & cancelled</small>
+                        </div>
+                        <div class="rounded-3 bg-success-subtle text-success p-3">
+                            <i class="bi bi-currency-rupee fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collected Payments -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-primary">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Collected Payments</div>
+                            <h3 class="fw-bold mb-0 text-primary">₹{{ kpis.collected_payments|floatformat:2 }}</h3>
+                            <small class="text-muted">Completed & non-reversed</small>
+                        </div>
+                        <div class="rounded-3 bg-primary-subtle text-primary p-3">
+                            <i class="bi bi-cash-stack fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Outstanding Balances -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-warning">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Outstanding Receivables</div>
+                            <h3 class="fw-bold mb-0 text-warning">₹{{ kpis.outstanding_balance|floatformat:2 }}</h3>
+                            <small class="text-muted">Across all valid invoices</small>
+                        </div>
+                        <div class="rounded-3 bg-warning-subtle text-warning p-3">
+                            <i class="bi bi-hourglass-split fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Average Order Value (AOV) -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100 border-start border-4 border-info">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Avg Order Value (AOV)</div>
+                            <h3 class="fw-bold mb-0 text-info">₹{{ kpis.average_order_value|floatformat:2 }}</h3>
+                            <small class="text-muted">{{ kpis.sales_order_count }} confirmed orders</small>
+                        </div>
+                        <div class="rounded-3 bg-info-subtle text-info p-3">
+                            <i class="bi bi-basket fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Customers -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Total Customers</div>
+                            <h4 class="fw-bold mb-0 text-dark">{{ kpis.total_customers }}</h4>
+                            <small class="text-muted">Active client profiles</small>
+                        </div>
+                        <div class="rounded-3 bg-secondary-subtle text-secondary p-3">
+                            <i class="bi bi-people fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Leads -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Active Leads</div>
+                            <h4 class="fw-bold mb-0 text-dark">{{ kpis.active_leads_count }}</h4>
+                            <small class="text-muted">Open pipeline stages</small>
+                        </div>
+                        <div class="rounded-3 bg-secondary-subtle text-secondary p-3">
+                            <i class="bi bi-funnel fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lead Conversion Rate -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Closed Conversion Rate</div>
+                            <h4 class="fw-bold mb-0 text-primary">{{ kpis.conversion_rate }}%</h4>
+                            <small class="text-muted">{{ kpis.won_leads_count }} Won / {{ kpis.closed_leads_count }} Closed</small>
+                        </div>
+                        <div class="rounded-3 bg-primary-subtle text-primary p-3">
+                            <i class="bi bi-percent fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stock Health -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="text-muted small fw-semibold text-uppercase">Inventory Attention</div>
+                            <div class="d-flex gap-2 align-items-baseline">
+                                <span class="badge bg-danger fs-6">{{ kpis.out_of_stock_count }} Out</span>
+                                <span class="badge bg-warning text-dark fs-6">{{ kpis.low_stock_count }} Low</span>
+                            </div>
+                            <small class="text-muted">Physical products stock</small>
+                        </div>
+                        <div class="rounded-3 bg-danger-subtle text-danger p-3">
+                            <i class="bi bi-exclamation-triangle fs-4"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 1: Monthly Revenue Trend & Lead Pipeline Funnel -->
+    <div class="row g-4 mb-4">
+        <!-- Monthly Revenue Line Chart -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+                    <h5 class="fw-bold mb-0">Monthly Revenue Trajectory</h5>
+                    <span class="badge bg-light text-muted border">Confirmed Sales</span>
+                </div>
+                <div class="card-body">
+                    {% if revenue_trend_chart.data %}
+                    <div style="height: 280px;">
+                        <canvas id="revenueTrendChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light text-center py-5 border">
+                        <i class="bi bi-bar-chart fs-1 text-muted d-block mb-2"></i>
+                        <p class="text-muted mb-0">No confirmed sales data recorded in this period.</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Accessible Data Table for Screen Readers & Fallback -->
+                    <div class="mt-3 pt-2 border-top">
+                        <a class="text-decoration-none small text-secondary" data-bs-toggle="collapse" href="#revenueTableCollapse" role="button" aria-expanded="false">
+                            <i class="bi bi-table me-1"></i> View Trajectory Summary Table
+                        </a>
+                        <div class="collapse mt-2" id="revenueTableCollapse">
+                            <table class="table table-sm table-striped small mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Month</th>
+                                        <th class="text-end">Revenue (₹)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for label in revenue_trend_chart.labels %}
+                                    <tr>
+                                        <td>{{ label }}</td>
+                                        <td class="text-end">₹{{ revenue_trend_chart.data|slice:forloop.counter0|last|floatformat:2 }}</td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr><td colspan="2" class="text-center text-muted">No data available</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lead Pipeline Distribution -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h5 class="fw-bold mb-0">Lead Stage Distribution</h5>
+                </div>
+                <div class="card-body">
+                    {% if kpis.total_leads_count > 0 %}
+                    <div style="height: 280px;">
+                        <canvas id="leadPipelineChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light text-center py-5 border">
+                        <i class="bi bi-funnel fs-1 text-muted d-block mb-2"></i>
+                        <p class="text-muted mb-0">No leads recorded in the selected period.</p>
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3 pt-2 border-top">
+                        <table class="table table-sm small mb-0">
+                            <tbody>
+                                {% for stage, count in kpis.lead_pipeline_distribution.items %}
+                                <tr>
+                                    <td><span class="badge bg-light text-dark border">{{ stage }}</span></td>
+                                    <td class="text-end fw-semibold">{{ count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row 2: Sales Status, Payment States, and Staff Breakdown -->
+    <div class="row g-4 mb-4">
+        <!-- Sales by Status -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h5 class="fw-bold mb-0">Sales Orders by Status</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 220px;">
+                        <canvas id="salesStatusChart"></canvas>
+                    </div>
+                    <div class="mt-3 pt-2 border-top">
+                        <table class="table table-sm small mb-0">
+                            <tbody>
+                                {% for st, cnt in kpis.sales_by_status.items %}
+                                <tr>
+                                    <td>{{ st }}</td>
+                                    <td class="text-end fw-semibold">{{ cnt }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Payment States -->
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h5 class="fw-bold mb-0">Invoice Payment States</h5>
+                </div>
+                <div class="card-body">
+                    <div style="height: 220px;">
+                        <canvas id="paymentStatesChart"></canvas>
+                    </div>
+                    <div class="mt-3 pt-2 border-top">
+                        <table class="table table-sm small mb-0">
+                            <tbody>
+                                {% for ps, cnt in kpis.invoice_payment_states.items %}
+                                <tr>
+                                    <td>{{ ps }}</td>
+                                    <td class="text-end fw-semibold">{{ cnt }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Selling Products/Services -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h5 class="fw-bold mb-0">Top Products by Revenue</h5>
+                </div>
+                <div class="card-body">
+                    {% if kpis.top_products_list %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle small mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Product</th>
+                                    <th class="text-center">Units</th>
+                                    <th class="text-end">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prod in kpis.top_products_list %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-truncate" style="max-width: 140px;">{{ prod.product_name }}</div>
+                                        <small class="text-muted">{{ prod.product_code }}</small>
+                                    </td>
+                                    <td class="text-center">{{ prod.units_sold }}</td>
+                                    <td class="text-end fw-semibold text-success">₹{{ prod.total_revenue|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light text-center py-4 border">
+                        <p class="text-muted small mb-0">No item sales recorded in this period.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Revenue by Sales Representative Table & Bar Chart -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0 pt-3 pb-0 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0">Sales Representative Leaderboard</h5>
+            <a href="{% url 'reports:staff_performance_report' %}" class="btn btn-outline-primary btn-sm">Full Performance Report</a>
+        </div>
+        <div class="card-body">
+            {% if kpis.staff_revenue_list %}
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <div style="height: 240px;">
+                        <canvas id="staffRevenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-5">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover align-middle small mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Representative</th>
+                                    <th class="text-center">Orders</th>
+                                    <th class="text-end">Closed Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for staff in kpis.staff_revenue_list %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ staff.staff_name }}</div>
+                                        <small class="text-muted">{{ staff.staff_code }}</small>
+                                    </td>
+                                    <td class="text-center">{{ staff.order_count }}</td>
+                                    <td class="text-end fw-bold text-success">₹{{ staff.total_revenue|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-light text-center py-4 border">
+                <p class="text-muted mb-0">No sales staff orders recorded in this period.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Safe JSON Data Scripting via Django json_script -->
+{{ revenue_trend_chart|json_script:"revenue-trend-data" }}
+{{ lead_pipeline_chart|json_script:"lead-pipeline-data" }}
+{{ sales_status_chart|json_script:"sales-status-data" }}
+{{ payment_states_chart|json_script:"payment-states-data" }}
+{{ staff_revenue_chart|json_script:"staff-revenue-data" }}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Revenue Trajectory Line Chart
+    const revTrendEl = document.getElementById('revenue-trend-data');
+    if (revTrendEl) {
+        const revTrend = JSON.parse(revTrendEl.textContent);
+        const ctxRev = document.getElementById('revenueTrendChart');
+        if (ctxRev && revTrend.labels.length > 0) {
+            new Chart(ctxRev, {
+                type: 'line',
+                data: {
+                    labels: revTrend.labels,
+                    datasets: [{
+                        label: 'Confirmed Revenue (₹)',
+                        data: revTrend.data,
+                        borderColor: '#7C3AED',
+                        backgroundColor: 'rgba(124, 58, 237, 0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#7C3AED'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // 2. Lead Pipeline Bar Chart
+    const leadPipeEl = document.getElementById('lead-pipeline-data');
+    if (leadPipeEl) {
+        const leadPipe = JSON.parse(leadPipeEl.textContent);
+        const ctxPipe = document.getElementById('leadPipelineChart');
+        if (ctxPipe && leadPipe.labels.length > 0) {
+            new Chart(ctxPipe, {
+                type: 'bar',
+                data: {
+                    labels: leadPipe.labels,
+                    datasets: [{
+                        label: 'Leads',
+                        data: leadPipe.data,
+                        backgroundColor: ['#C4B5FD', '#A78BFA', '#7C3AED', '#EC4899', '#DB2777', '#10B981', '#EF4444'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                }
+            });
+        }
+    }
+
+    // 3. Sales Status Doughnut Chart
+    const salesStatEl = document.getElementById('sales-status-data');
+    if (salesStatEl) {
+        const salesStat = JSON.parse(salesStatEl.textContent);
+        const ctxStat = document.getElementById('salesStatusChart');
+        if (ctxStat) {
+            new Chart(ctxStat, {
+                type: 'doughnut',
+                data: {
+                    labels: salesStat.labels,
+                    datasets: [{
+                        data: salesStat.data,
+                        backgroundColor: ['#625D78', '#7C3AED', '#10B981', '#EF4444'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+                }
+            });
+        }
+    }
+
+    // 4. Payment States Pie Chart
+    const payStateEl = document.getElementById('payment-states-data');
+    if (payStateEl) {
+        const payState = JSON.parse(payStateEl.textContent);
+        const ctxPay = document.getElementById('paymentStatesChart');
+        if (ctxPay) {
+            new Chart(ctxPay, {
+                type: 'pie',
+                data: {
+                    labels: payState.labels,
+                    datasets: [{
+                        data: payState.data,
+                        backgroundColor: ['#EF4444', '#F59E0B', '#10B981'],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } }
+                }
+            });
+        }
+    }
+
+    // 5. Staff Revenue Leaderboard
+    const staffRevEl = document.getElementById('staff-revenue-data');
+    if (staffRevEl) {
+        const staffRev = JSON.parse(staffRevEl.textContent);
+        const ctxStaff = document.getElementById('staffRevenueChart');
+        if (ctxStaff && staffRev.labels.length > 0) {
+            new Chart(ctxStaff, {
+                type: 'bar',
+                data: {
+                    labels: staffRev.labels,
+                    datasets: [{
+                        label: 'Closed Revenue (₹)',
+                        data: staffRev.data,
+                        backgroundColor: '#7C3AED',
+                        hoverBackgroundColor: '#6D28D9',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { callback: v => '₹' + v.toLocaleString('en-IN') }
+                        }
+                    }
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

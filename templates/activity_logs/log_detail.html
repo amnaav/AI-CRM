@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Activity Log #{{ log.pk }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0 fw-bold">
+                    <i class="bi bi-shield-check text-success me-2"></i>Audit Log Record #{{ log.pk }}
+                </h5>
+                <span class="badge bg-secondary">Read-Only Immutable</span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Event Timestamp</label>
+                        <div class="fw-semibold">{{ log.created_at|date:"Y-m-d H:i:s T" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Actor / User</label>
+                        <div class="fw-semibold">
+                            {% if log.user %}
+                            {{ log.user.full_name|default:log.user.username }} ({{ log.user.get_role_display }})
+                            {% else %}
+                            System / Automated Process
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Action Taken</label>
+                        <div><span class="badge bg-primary">{{ log.get_action_display }}</span></div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Target Module & Record</label>
+                        <div>
+                            <span class="badge bg-info-subtle text-info-emphasis">{{ log.module_name }}</span>
+                            {% if log.record_id %}<code class="ms-1">{{ log.record_id }}</code>{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-12">
+                        <label class="text-muted small">Client IP Address</label>
+                        <div class="font-monospace text-secondary">{{ log.ip_address|default:"Not captured / Background task" }}</div>
+                    </div>
+                    <div class="col-sm-12">
+                        <label class="text-muted small">Event Description</label>
+                        <div class="p-3 bg-light rounded border text-dark">{{ log.description }}</div>
+                    </div>
+                    <div class="col-sm-12">
+                        <label class="text-muted small">Sanitized Metadata (JSON)</label>
+                        <pre class="p-3 bg-dark text-light rounded border small mb-0 font-monospace">{{ log.metadata|default:"{}" }}</pre>
+                        <small class="text-muted"><i class="bi bi-shield-lock me-1"></i>All credentials, tokens, session IDs, and payment references were redacted by the central sanitizer before persistence.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer bg-white py-3">
+                <a href="{% url 'activity_logs:log_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Audit Logs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

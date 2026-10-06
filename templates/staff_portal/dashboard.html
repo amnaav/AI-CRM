@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Sales Staff Dashboard | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Assigned Customers</div>
+                    <div class="stat-value">{{ assigned_customers_count|default:0 }}</div>
+                </div>
+                <div class="stat-icon"><i class="bi bi-people"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Assigned Leads</div>
+                    <div class="stat-value">{{ assigned_leads_count|default:0 }}</div>
+                </div>
+                <div class="stat-icon warning"><i class="bi bi-funnel"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-danger">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">High Priority Leads</div>
+                    <div class="stat-value">{{ high_priority_leads_count|default:0 }}</div>
+                </div>
+                <div class="stat-icon danger"><i class="bi bi-stars"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Pending Reminders</div>
+                    <div class="stat-value">{{ pending_reminders_count|default:0 }}</div>
+                </div>
+                <div class="stat-icon info"><i class="bi bi-calendar-check"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

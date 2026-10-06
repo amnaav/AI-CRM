@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Total Customers</div>
+                    <div class="stat-value">{{ total_customers|default:0 }}</div>
+                </div>
+                <div class="stat-icon"><i class="bi bi-people"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value">₹{{ total_revenue|default:"0.00" }}</div>
+                </div>
+                <div class="stat-icon success"><i class="bi bi-currency-rupee"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Active Leads</div>
+                    <div class="stat-value">{{ active_leads|default:0 }}</div>
+                </div>
+                <div class="stat-icon warning"><i class="bi bi-funnel"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="stat-card stat-danger">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Overdue Invoices</div>
+                    <div class="stat-value">{{ overdue_invoices_count|default:0 }}</div>
+                </div>
+                <div class="stat-icon danger"><i class="bi bi-exclamation-octagon"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

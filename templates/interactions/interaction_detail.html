@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Interaction: {{ interaction.subject }}{% endblock %}
+
+{% block page_actions %}
+{% if not user.is_customer %}
+<a href="{% url 'interactions:interaction_update' interaction.pk %}" class="btn btn-primary">
+    <i class="bi bi-pencil me-1"></i> Edit Interaction
+</a>
+<a href="{% url 'interactions:interaction_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to List
+</a>
+{% else %}
+<a href="{% url 'interactions:customer_interaction_list' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back to My History
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary fs-6">{{ interaction.get_interaction_type_display }}</span>
+                    <h5 class="mb-0 fw-bold">{{ interaction.subject }}</h5>
+                </div>
+                <div>
+                    {% if interaction.is_customer_visible %}
+                    <span class="badge bg-success-subtle text-success border"><i class="bi bi-eye me-1"></i>Customer Portal Visible</span>
+                    {% else %}
+                    <span class="badge bg-light text-muted border"><i class="bi bi-eye-slash me-1"></i>Internal Only</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <label class="text-muted small fw-semibold text-uppercase">Description & Notes</label>
+                    <div class="p-3 bg-light rounded border text-dark" style="white-space: pre-wrap;">{{ interaction.description }}</div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Interaction Date</label>
+                        <div class="fw-medium"><i class="bi bi-calendar3 me-1 text-primary"></i>{{ interaction.interaction_date|date:"Y-m-d H:i" }}</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="text-muted small">Next Follow-Up</label>
+                        <div class="fw-medium">
+                            {% if interaction.next_follow_up %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-clock me-1"></i>{{ interaction.next_follow_up }}</span>
+                            {% else %}
+                            <span class="text-muted">None scheduled</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Target Information Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-link-45deg me-1 text-primary"></i>Target Association</h6>
+            </div>
+            <div class="card-body">
+                {% if interaction.customer %}
+                <div class="mb-3">
+                    <label class="text-muted small">Customer</label>
+                    <div class="fw-semibold">
+                        {% if not user.is_customer %}
+                        <a href="{% url 'accounts:customer_detail' interaction.customer.pk %}" class="text-decoration-none">
+                            {{ interaction.customer.user.full_name }}
+                        </a>
+                        {% else %}
+                        {{ interaction.customer.user.full_name }}
+                        {% endif %}
+                    </div>
+                    <small class="text-muted font-monospace">{{ interaction.customer.customer_code }}</small>
+                </div>
+                {% endif %}
+
+                {% if interaction.lead and not user.is_customer %}
+                <div class="mb-3">
+                    <label class="text-muted small">Lead</label>
+                    <div class="fw-semibold">
+                        <a href="{% url 'leads:lead_detail' interaction.lead.pk %}" class="text-decoration-none text-warning-emphasis">
+                            {{ interaction.lead.full_name }}
+                        </a>
+                    </div>
+                    <small class="text-muted font-monospace">{{ interaction.lead.lead_code }}</small>
+                </div>
+                {% endif %}
+
+                {% if interaction.sale %}
+                <div class="mb-3">
+                    <label class="text-muted small">Sale Order</label>
+                    <div class="fw-semibold">
+                        {% if not user.is_customer %}
+                        <a href="{% url 'sales:sale_detail' interaction.sale.pk %}" class="text-decoration-none text-info">
+                            Order #{{ interaction.sale.sale_number }}
+                        </a>
+                        {% else %}
+                        Order #{{ interaction.sale.sale_number }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if not user.is_customer %}
+                <hr>
+                <div class="mb-2">
+                    <label class="text-muted small">Staff Member</label>
+                    <div class="fw-medium">{{ interaction.sales_staff.user.full_name|default:"Not assigned" }}</div>
+                </div>
+                <div>
+                    <label class="text-muted small">Logged By</label>
+                    <div class="small text-muted">{{ interaction.created_by.username|default:"System" }} on {{ interaction.created_at|date:"Y-m-d H:i" }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

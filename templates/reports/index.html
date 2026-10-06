@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports & Business Intelligence | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <!-- Header Banner -->
+    <div class="card border-0 shadow-sm mb-4 bg-primary text-white rounded-3 overflow-hidden">
+        <div class="card-body p-4 p-lg-5">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="badge bg-white text-primary fw-bold px-3 py-2 mb-3 rounded-pill">
+                        <i class="bi bi-shield-check me-1"></i> Role-Aware Enterprise Intelligence
+                    </div>
+                    <h1 class="display-6 fw-bold mb-2">Reports & Advanced Analytics</h1>
+                    <p class="lead mb-0 text-white-50">
+                        Real-time business performance indicators, financial audit reports, and explainable AI sales forecasting.
+                    </p>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+                    {% if is_admin %}
+                    <a href="{% url 'reports:admin_analytics' %}" class="btn btn-light btn-lg fw-semibold shadow-sm me-2">
+                        <i class="bi bi-speedometer2 me-1"></i> Executive Dashboard
+                    </a>
+                    {% else %}
+                    <a href="{% url 'reports:staff_analytics' %}" class="btn btn-light btn-lg fw-semibold shadow-sm me-2">
+                        <i class="bi bi-person-workspace me-1"></i> Personal Workspace
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics & AI Section -->
+    <h4 class="fw-bold text-dark mb-3">Analytics & Explainable AI</h4>
+    <div class="row g-3 mb-5">
+        {% if is_admin %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm hover-lift">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-3 bg-primary-subtle text-primary p-3 me-3">
+                            <i class="bi bi-graph-up-arrow fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">Executive Analytics</h5>
+                            <span class="badge bg-primary-subtle text-primary">Admin Global</span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        Company-wide revenue trends, customer lifetime value, lead conversion ratios, and product sales volume.
+                    </p>
+                    <a href="{% url 'reports:admin_analytics' %}" class="btn btn-outline-primary btn-sm w-100 fw-semibold">
+                        View Analytics <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm hover-lift">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-3 bg-success-subtle text-success p-3 me-3">
+                            <i class="bi bi-person-badge fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">Staff Personal Analytics</h5>
+                            <span class="badge bg-success-subtle text-success">{% if is_admin %}Staff Selector{% else %}Personal Scoped{% endif %}</span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        Personal sales metrics, target achievement vs. assigned quota, conversion ratios, and pending reminders.
+                    </p>
+                    <a href="{% url 'reports:staff_analytics' %}" class="btn btn-outline-success btn-sm w-100 fw-semibold">
+                        Open Staff Analytics <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 border-0 shadow-sm hover-lift border-primary border-opacity-25">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="rounded-3 p-3 me-3" style="background-color: rgba(236, 72, 153, 0.12); color: var(--color-accent, #EC4899);">
+                            <i class="bi bi-magic fs-4"></i>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1">AI Sales Forecasting</h5>
+                            <span class="badge" style="background-color: rgba(236, 72, 153, 0.12); color: var(--color-accent, #EC4899); border: 1px solid var(--border-color);">Scikit-Learn ML</span>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        3-month future revenue projection based on historical sales with statistical fit explainability and fallback.
+                    </p>
+                    <a href="{% url 'reports:sales_forecast' %}" class="btn btn-primary btn-sm w-100 fw-semibold">
+                        Launch Forecast <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reports Matrix Section -->
+    <h4 class="fw-bold text-dark mb-3">Audited Data Reports</h4>
+    <div class="row g-3">
+        <!-- 1. Customer Directory -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-people fs-3 text-primary me-2"></i>
+                        <h6 class="fw-bold mb-0">Customer Directory</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Active customer directory, contact profiles, assigned staff, and account status.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:customer_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:customer_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:customer_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:customer_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Lead Pipeline -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-funnel fs-3 text-warning me-2"></i>
+                        <h6 class="fw-bold mb-0">Lead Pipeline</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Stage-wise lead pipeline, estimated values, conversion scores, and staff distribution.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:lead_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:lead_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:lead_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:lead_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Sales Orders -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-cart-check fs-3 text-success me-2"></i>
+                        <h6 class="fw-bold mb-0">Sales Orders</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Detailed sales ledger, taxes, order discounts, line items, and confirmed status audit.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:sales_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:sales_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:sales_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:sales_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Invoices & Balances -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-receipt fs-3 text-info me-2"></i>
+                        <h6 class="fw-bold mb-0">Invoices & Balances</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Receivables ledger, paid vs. balance breakdown, overdue tracking, and payment terms.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:invoice_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:invoice_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:invoice_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:invoice_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Payments & Reversals -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-credit-card fs-3 text-danger me-2"></i>
+                        <h6 class="fw-bold mb-0">Payments & Reversals</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Cash flow collections, payment modes, UTR transactions, and formal reversal audit trails.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:payment_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:payment_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:payment_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:payment_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Catalog & Stock -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-box-seam fs-3 text-secondary me-2"></i>
+                        <h6 class="fw-bold mb-0">Catalog & Stock</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Inventory levels, reorder thresholds, low/out-of-stock items, and category hierarchy.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:catalog_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:catalog_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:catalog_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:catalog_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Staff Performance -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-award fs-3 text-primary me-2"></i>
+                        <h6 class="fw-bold mb-0">Staff Performance</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Quota attainment %, closed revenue comparison, lifetime orders, and won lead volume.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:staff_performance_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:staff_performance_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:staff_performance_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:staff_performance_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Activity & Reminders -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm">
+                <div class="card-body p-4 d-flex flex-column">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="bi bi-calendar2-check fs-3 text-dark me-2"></i>
+                        <h6 class="fw-bold mb-0">Activity & Reminders</h6>
+                    </div>
+                    <p class="text-muted small flex-grow-1">
+                        Follow-up timeline, client meetings, call logs, task statuses, and touchpoint audit.
+                    </p>
+                    <div class="d-flex gap-2 mt-3">
+                        <a href="{% url 'reports:activity_report' %}" class="btn btn-primary btn-sm flex-grow-1">Preview</a>
+                        <a href="{% url 'reports:activity_report' %}?export=csv" class="btn btn-outline-secondary btn-sm" title="Export CSV"><i class="bi bi-filetype-csv"></i></a>
+                        <a href="{% url 'reports:activity_report' %}?export=xlsx" class="btn btn-outline-secondary btn-sm" title="Export Excel"><i class="bi bi-file-earmark-excel"></i></a>
+                        <a href="{% url 'reports:activity_report' %}?export=pdf" class="btn btn-outline-secondary btn-sm" title="Export PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

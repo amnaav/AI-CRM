@@ -1,0 +1,1027 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ SYSTEM_NAME|default:"AI CRM" }} – Build Stronger Customer Relationships. Grow With Confidence.{% endblock %}
+
+{% block landing_content %}
+<!-- ==========================================================================
+     1. Public Navigation Bar
+     ========================================================================== -->
+<nav class="landing-navbar navbar navbar-expand-lg py-3 sticky-top" aria-label="Main Navigation">
+    <div class="container">
+        <!-- Brand Logo & Name -->
+        <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none" href="{% url 'home' %}">
+            <img src="{% static 'images/logo.svg' %}" alt="AI CRM Logo" width="40" height="40" class="flex-shrink-0">
+            <div>
+                <span class="fw-bold fs-5 text-dark tracking-tight">{{ SYSTEM_NAME|default:"AI CRM" }}</span>
+            </div>
+        </a>
+
+        <!-- Mobile Navigation Toggler -->
+        <button class="navbar-toggler border-0 shadow-none p-2" type="button" data-bs-toggle="collapse" data-bs-target="#landingNavbarNav" aria-controls="landingNavbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-list fs-2 text-dark"></i>
+        </button>
+
+        <!-- Navbar Links & Authentication CTAs -->
+        <div class="collapse navbar-collapse" id="landingNavbarNav">
+            <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-1">
+                <li class="nav-item">
+                    <a class="landing-nav-link" href="#hero">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="landing-nav-link" href="#features">Features</a>
+                </li>
+                <li class="nav-item">
+                    <a class="landing-nav-link" href="#products">Products & Services</a>
+                </li>
+                <li class="nav-item">
+                    <a class="landing-nav-link" href="#about">About</a>
+                </li>
+                <li class="nav-item">
+                    <a class="landing-nav-link" href="#contact">Contact</a>
+                </li>
+            </ul>
+
+            <div class="d-flex flex-wrap align-items-center gap-2 pt-2 pt-lg-0">
+                {% if request.user.is_authenticated %}
+                    <!-- Authenticated User Navigation: Role-Aware Dashboard & CSRF POST Logout -->
+                    <div class="d-flex align-items-center gap-2 me-lg-2">
+                        <span class="badge bg-light text-dark border py-2 px-3 d-inline-flex align-items-center gap-1">
+                            <i class="bi bi-person-check text-primary"></i>
+                            <span class="fw-medium">{{ request.user.full_name|default:request.user.username }}</span>
+                            <span class="text-secondary small">({{ role_label|default:"Member" }})</span>
+                        </span>
+                        <a href="{% url dashboard_url|default:'dashboard:index' %}" class="btn btn-primary fw-semibold px-3 py-2">
+                            <i class="bi bi-speedometer2 me-1"></i> Go to Dashboard
+                        </a>
+                    </div>
+                    <form method="post" action="{% url 'accounts:logout' %}" class="d-inline m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger fw-semibold px-3 py-2" title="Sign out of your session">
+                            <i class="bi bi-box-arrow-right me-1"></i> Log Out
+                        </button>
+                    </form>
+                {% else %}
+                    <!-- Anonymous Visitor Navigation: Login & Customer Registration -->
+                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary fw-semibold px-3 py-2">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Log In
+                    </a>
+                    <a href="{% url 'accounts:register' %}" class="btn btn-primary fw-semibold px-3 py-2 shadow-sm">
+                        <i class="bi bi-person-plus me-1"></i> Create Customer Account
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ==========================================================================
+     2. Hero Section
+     ========================================================================== -->
+<section class="landing-hero" id="hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <div class="landing-hero-pill">
+                    <i class="bi bi-stars"></i>
+                    <span>Customer Relationships, Simplified</span>
+                </div>
+                <h1 class="landing-hero-title">
+                    Build Stronger Customer Relationships. Grow With Confidence.
+                </h1>
+                <p class="landing-hero-lead">
+                    AI CRM brings customers, leads, sales, invoices, follow-ups, and business insights together in one organized workspace—helping your team stay focused and deliver better customer experiences.
+                </p>
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    {% if request.user.is_authenticated %}
+                        <a href="{% url dashboard_url|default:'dashboard:index' %}" class="btn btn-primary btn-lg fw-bold px-4 py-3 shadow">
+                            <i class="bi bi-speedometer2 me-2"></i> Go to Your Dashboard
+                        </a>
+                        <a href="#products" class="btn btn-outline-light btn-lg fw-semibold px-4 py-3">
+                            <i class="bi bi-grid me-2"></i> Explore Products & Services
+                        </a>
+                    {% else %}
+                        <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg fw-bold px-4 py-3 shadow">
+                            <i class="bi bi-arrow-right-circle me-2"></i> Get Started
+                        </a>
+                        <a href="#products" class="btn btn-outline-light btn-lg fw-semibold px-4 py-3">
+                            <i class="bi bi-grid me-2"></i> Explore Products & Services
+                        </a>
+                        <a href="{% url 'accounts:login' %}" class="landing-hero-admin-link ms-2 d-inline-flex align-items-center gap-1">
+                            Staff & Administrator Sign In <i class="bi bi-chevron-right"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Hero Platform Card: Your Business at a Glance -->
+            <div class="col-lg-5">
+                <div class="landing-hero-intelligence-card shadow-lg p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom border-light-subtle">
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="{% static 'images/logo.svg' %}" alt="AI CRM Logo" width="36" height="36">
+                            <div>
+                                <h6 class="fw-bold landing-hero-intel-title mb-0">Your Business at a Glance</h6>
+                                <span class="landing-hero-intel-subtitle small">Connected tools for everyday customer operations</span>
+                            </div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                            <i class="bi bi-shield-check"></i> Connected
+                        </span>
+                    </div>
+
+                    <!-- 4 Operational Highlights -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 landing-hero-intel-kpi">
+                                <span class="landing-hero-intel-kpi-label small d-block mb-1">Customer Management</span>
+                                <span class="fw-bold landing-hero-intel-kpi-val fs-6">Organized Profiles</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 landing-hero-intel-kpi">
+                                <span class="landing-hero-intel-kpi-label small d-block mb-1">Sales Pipeline</span>
+                                <span class="fw-bold landing-hero-intel-kpi-val fs-6">Clear Opportunities</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 landing-hero-intel-kpi">
+                                <span class="landing-hero-intel-kpi-label small d-block mb-1">Invoices & Payments</span>
+                                <span class="fw-bold landing-hero-intel-kpi-val fs-6">Accurate Tracking</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 landing-hero-intel-kpi">
+                                <span class="landing-hero-intel-kpi-label small d-block mb-1">Business Insights</span>
+                                <span class="fw-bold landing-hero-intel-kpi-val fs-6">Actionable Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bottom Highlight -->
+                    <div class="p-3 rounded-3 landing-hero-intel-kpi d-flex align-items-center gap-3">
+                        <div class="landing-card-icon teal m-0" style="width: 40px; height: 40px; font-size: 1.1rem;">
+                            <i class="bi bi-cpu"></i>
+                        </div>
+                        <div class="small">
+                            <span class="fw-semibold landing-hero-intel-title d-block">Intelligent CRM Assistance</span>
+                            <span class="landing-hero-intel-kpi-label">Get quick, role-aware answers and insights from your authorized CRM data.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     3. Operational Summary Bar
+     ========================================================================== -->
+<section class="landing-trust-bar">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-6 col-md-3">
+                <div class="landing-trust-item">
+                    <div class="landing-trust-icon">
+                        <i class="bi bi-person-lines-fill"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Unified Profiles</h6>
+                        <span class="text-secondary small">Connected records</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="landing-trust-item">
+                    <div class="landing-trust-icon">
+                        <i class="bi bi-funnel"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Clear Pipeline</h6>
+                        <span class="text-secondary small">Structured conversion</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="landing-trust-item">
+                    <div class="landing-trust-icon">
+                        <i class="bi bi-receipt-cutoff"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Accurate Billing</h6>
+                        <span class="text-secondary small">Invoices & receipts</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="landing-trust-item">
+                    <div class="landing-trust-icon">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0">Responsible Access</h6>
+                        <span class="text-secondary small">Role-based security</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     4. Features Section
+     ========================================================================== -->
+<section class="landing-section" id="features">
+    <div class="container">
+        <div class="text-center">
+            <span class="landing-section-pill">Complete Platform</span>
+            <h2 class="landing-section-title">Everything You Need to Manage Customer Relationships</h2>
+            <p class="landing-section-desc">
+                From the first enquiry to the final payment, AI CRM keeps your customer journey connected and your team informed.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- 1. Customer Management -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon peacock">
+                        <i class="bi bi-person-vcard"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Customer Management</h3>
+                    <p class="text-secondary small mb-0">
+                        Maintain complete customer profiles, contact details, account information, and relationship history.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. Lead Management -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon copper">
+                        <i class="bi bi-funnel-fill"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Lead Management</h3>
+                    <p class="text-secondary small mb-0">
+                        Capture leads, track pipeline progress, prioritize opportunities, and support structured lead conversion.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3. Products & Inventory -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon teal">
+                        <i class="bi bi-boxes"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Products & Inventory</h3>
+                    <p class="text-secondary small mb-0">
+                        Manage products and services, categories, stock levels, reorder information, and inventory adjustments.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4. Sales Orders -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon copper">
+                        <i class="bi bi-cart-check"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Sales Orders</h3>
+                    <p class="text-secondary small mb-0">
+                        Create and manage sales orders with item-level pricing, tax calculations, customer details, and order status.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 5. Invoices & Payments -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon peacock">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Invoices & Payments</h3>
+                    <p class="text-secondary small mb-0">
+                        Issue invoices, monitor outstanding balances, record payments, print receipts, and maintain accurate billing history.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 6. Tasks & Follow-ups -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon teal">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Tasks & Follow-ups</h3>
+                    <p class="text-secondary small mb-0">
+                        Schedule reminders, assign follow-up activities, and keep important customer commitments visible.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 7. Customer Interactions -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon peacock">
+                        <i class="bi bi-chat-left-text"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Customer Interactions</h3>
+                    <p class="text-secondary small mb-0">
+                        Record calls, meetings, emails, notes, and planned follow-up dates in one organized timeline.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 8. Reports & Analytics -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon copper">
+                        <i class="bi bi-bar-chart-line"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Reports & Analytics</h3>
+                    <p class="text-secondary small mb-0">
+                        Review sales performance, revenue, collections, outstanding balances, and operational reports.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 9. AI CRM Assistant -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon teal">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">AI CRM Assistant</h3>
+                    <p class="text-secondary small mb-0">
+                        Ask supported CRM questions and receive explainable, permission-aware answers based on available business data.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     5. Role-Based Workspace Section
+     ========================================================================== -->
+<section class="landing-section landing-section-alt" id="roles">
+    <div class="container">
+        <div class="text-center">
+            <span class="landing-section-pill">Tailored Operations</span>
+            <h2 class="landing-section-title">A Focused Workspace for Every User</h2>
+            <p class="landing-section-desc">
+                Each user sees the information and actions relevant to their responsibilities.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Administrator Card -->
+            <div class="col-lg-4">
+                <div class="landing-role-card">
+                    <div class="landing-role-header admin">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h4 class="h5 fw-bold mb-0 text-white">Administrator</h4>
+                            <i class="bi bi-shield-shaded fs-4"></i>
+                        </div>
+                        <p class="small text-white-50 mb-0">Operations, team governance & oversight</p>
+                    </div>
+                    <div class="landing-role-body">
+                        <p class="text-secondary small mb-4 flex-grow-1">
+                            Manage customers, staff, leads, catalog, sales, billing, reports, analytics, activity history, and system-wide operations.
+                        </p>
+                        <div class="pt-3 border-top mt-auto">
+                            <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary w-100 fw-semibold">
+                                Admin Sign In <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Staff Card -->
+            <div class="col-lg-4">
+                <div class="landing-role-card">
+                    <div class="landing-role-header staff">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h4 class="h5 fw-bold mb-0 text-white">Sales Staff</h4>
+                            <i class="bi bi-briefcase fs-4"></i>
+                        </div>
+                        <p class="small text-white-50 mb-0">Pipeline acceleration & relationship execution</p>
+                    </div>
+                    <div class="landing-role-body">
+                        <p class="text-secondary small mb-4 flex-grow-1">
+                            Work with assigned customers and leads, manage sales activities, record interactions, schedule reminders, and monitor performance.
+                        </p>
+                        <div class="pt-3 border-top mt-auto">
+                            <a href="{% url 'accounts:login' %}" class="btn btn-primary w-100 fw-semibold">
+                                Staff Sign In <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Card -->
+            <div class="col-lg-4">
+                <div class="landing-role-card">
+                    <div class="landing-role-header customer">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h4 class="h5 fw-bold mb-0 text-white">Customer</h4>
+                            <i class="bi bi-person-badge fs-4"></i>
+                        </div>
+                        <p class="small text-white-50 mb-0">Transparent self-service portal</p>
+                    </div>
+                    <div class="landing-role-body">
+                        <p class="text-secondary small mb-4 flex-grow-1">
+                            Maintain profile information, explore available products and services, and review personal purchases, invoices, payments, reminders, and notifications.
+                        </p>
+                        <div class="pt-3 border-top mt-auto">
+                            <a href="{% url 'accounts:register' %}" class="btn btn-outline-primary w-100 fw-semibold">
+                                Create Account <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     6. Workflow Section
+     ========================================================================== -->
+<section class="landing-section" id="workflow">
+    <div class="container">
+        <div class="text-center">
+            <span class="landing-section-pill">Structured Lifecycle</span>
+            <h2 class="landing-section-title">Keep Every Customer Journey Connected</h2>
+            <p class="landing-section-desc">
+                From initial awareness to long-term relationship retention, AI CRM structures each phase of customer interaction.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Step 1: Capture -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="landing-workflow-card">
+                    <div class="landing-workflow-number">1</div>
+                    <div class="landing-workflow-icon peacock">
+                        <i class="bi bi-person-plus"></i>
+                    </div>
+                    <h4 class="h6 fw-bold text-dark mb-2">Capture</h4>
+                    <p class="text-secondary small mb-0">
+                        Create customer and lead records with the information your team needs.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 2: Engage -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="landing-workflow-card">
+                    <div class="landing-workflow-number">2</div>
+                    <div class="landing-workflow-icon copper">
+                        <i class="bi bi-chat-square-dots"></i>
+                    </div>
+                    <h4 class="h6 fw-bold text-dark mb-2">Engage</h4>
+                    <p class="text-secondary small mb-0">
+                        Record interactions, schedule follow-ups, and maintain clear ownership.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 3: Convert -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="landing-workflow-card">
+                    <div class="landing-workflow-number">3</div>
+                    <div class="landing-workflow-icon teal">
+                        <i class="bi bi-cart-check"></i>
+                    </div>
+                    <h4 class="h6 fw-bold text-dark mb-2">Convert</h4>
+                    <p class="text-secondary small mb-0">
+                        Turn qualified opportunities into structured sales orders and invoices.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Step 4: Retain -->
+            <div class="col-sm-6 col-lg-3">
+                <div class="landing-workflow-card">
+                    <div class="landing-workflow-number">4</div>
+                    <div class="landing-workflow-icon copper">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </div>
+                    <h4 class="h6 fw-bold text-dark mb-2">Retain</h4>
+                    <p class="text-secondary small mb-0">
+                        Track payments, service history, reminders, and ongoing customer relationships.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     7. Dynamic Products & Services Section (Supports #products & #preview)
+     ========================================================================== -->
+<section class="landing-section landing-section-alt" id="products">
+    <span id="preview" style="display: block; position: relative; top: -80px; visibility: hidden;"></span>
+    <div class="container">
+        <div class="text-center">
+            <span class="landing-section-pill">Catalog Offerings</span>
+            <h2 class="landing-section-title">Explore Products & Services</h2>
+            <p class="landing-section-desc">
+                Discover active offerings available through AI CRM.
+            </p>
+        </div>
+
+        {% if preview_items %}
+            <div class="row g-4{% if preview_items|length < 3 %} justify-content-center{% endif %}">
+                {% for item in preview_items %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="landing-product-card">
+                            {% if item.image %}
+                                <img src="{{ item.image.url }}" alt="{{ item.product_name }}" class="landing-product-img">
+                            {% else %}
+                                <div class="landing-product-placeholder">
+                                    {% if item.item_type == 'SERVICE' %}
+                                        <i class="bi bi-gear-wide-connected" aria-hidden="true"></i>
+                                    {% else %}
+                                        <i class="bi bi-box-seam" aria-hidden="true"></i>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+
+                            <div class="landing-product-body">
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="badge bg-light text-secondary border small">
+                                        {{ item.category.category_name }}
+                                    </span>
+                                    <span class="{{ item.public_availability_class }}">
+                                        {{ item.public_availability }}
+                                    </span>
+                                </div>
+
+                                <h3 class="h6 fw-bold text-dark mb-2 text-truncate" title="{{ item.product_name }}">
+                                    {{ item.product_name }}
+                                </h3>
+
+                                <p class="text-secondary small mb-3 flex-grow-1" style="min-height: 40px;">
+                                    {{ item.description|truncatewords:16|default:"Catalog offering configured for customer operations fulfillment." }}
+                                </p>
+
+                                <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
+                                    <div>
+                                        <span class="text-secondary small d-block" style="font-size: 0.75rem;">Price</span>
+                                        <span class="fw-bold text-primary fs-5">₹{{ item.unit_price }}</span>
+                                    </div>
+                                    <div>
+                                        {% if request.user.is_authenticated %}
+                                            {% if request.user.is_customer %}
+                                                <a href="{% url 'catalog:customer_catalog' %}" class="btn btn-sm btn-primary fw-semibold">
+                                                    View in Portal
+                                                </a>
+                                            {% elif request.user.is_sales_staff or request.user.is_admin %}
+                                                <a href="{% url 'catalog:product_list' %}" class="btn btn-sm btn-outline-primary fw-semibold">
+                                                    Manage
+                                                </a>
+                                            {% else %}
+                                                <a href="{% url 'dashboard:index' %}" class="btn btn-sm btn-primary fw-semibold">
+                                                    Portal
+                                                </a>
+                                            {% endif %}
+                                        {% else %}
+                                            <a href="{% url 'accounts:login' %}" class="btn btn-sm btn-outline-primary fw-semibold">
+                                                Sign In to Order
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="text-center mt-5">
+                {% if request.user.is_authenticated %}
+                    {% if request.user.is_customer %}
+                        <a href="{% url 'catalog:customer_catalog' %}" class="btn btn-primary px-4 py-2 fw-semibold">
+                            <i class="bi bi-grid-3x3-gap me-2"></i> Browse Complete Customer Catalog
+                        </a>
+                    {% else %}
+                        <a href="{% url 'catalog:product_list' %}" class="btn btn-primary px-4 py-2 fw-semibold">
+                            <i class="bi bi-grid-3x3-gap me-2"></i> Open Catalog Management
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'accounts:register' %}" class="btn btn-primary px-4 py-2 fw-semibold shadow-sm">
+                        <i class="bi bi-person-plus me-2"></i> Create an Account to Access Full Catalog
+                    </a>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <div class="landing-card-icon teal mx-auto mb-3" style="width: 64px; height: 64px; font-size: 2rem;">
+                    <i class="bi bi-box2"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">Catalog Offerings</h5>
+                <p class="text-secondary small mb-3">New products and services will appear here when available.</p>
+                <a href="{% url 'accounts:login' %}" class="btn btn-primary btn-sm px-3">Sign In</a>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- ==========================================================================
+     8. Business Insights Section
+     ========================================================================== -->
+<section class="landing-section" id="insights">
+    <div class="container">
+        <div class="text-center">
+            <span class="landing-section-pill">Data-Driven Operations</span>
+            <h2 class="landing-section-title">Make Better Decisions With Clear Business Insights</h2>
+            <p class="landing-section-desc">
+                Turn day-to-day CRM activity into a clearer understanding of sales performance, revenue, collections, follow-ups, and customer engagement.
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Insight 1: Sales and Revenue Summaries -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon peacock">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Sales and Revenue Summaries</h3>
+                    <p class="text-secondary small mb-0">
+                        Review sales performance, aggregate revenue figures, order volumes, and conversion trends across time periods.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Insight 2: Collected & Outstanding Payments -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon copper">
+                        <i class="bi bi-wallet2"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Collected and Outstanding Payments</h3>
+                    <p class="text-secondary small mb-0">
+                        Keep financial balances clear with transparent tracking of received payments, pending invoices, and balances.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Insight 3: Lead Prioritization -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon teal">
+                        <i class="bi bi-bullseye"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Lead Prioritization</h3>
+                    <p class="text-secondary small mb-0">
+                        Help sales representatives focus their attention on active opportunities with structured priority categorization.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Insight 4: Follow-up Visibility -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon copper">
+                        <i class="bi bi-alarm"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Follow-Up Visibility</h3>
+                    <p class="text-secondary small mb-0">
+                        Monitor scheduled follow-ups, pending customer reminders, and timeline activities so no key relationship is neglected.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Insight 5: Inventory Alerts -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon peacock">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Inventory Alerts</h3>
+                    <p class="text-secondary small mb-0">
+                        Stay informed of product availability, reorder thresholds, and catalog status to keep order fulfillment reliable.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Insight 6: Explainable Sales Forecasting -->
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon teal">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Explainable Sales Forecasting</h3>
+                    <p class="text-secondary small mb-0">
+                        View trend projections generated from available historical sales data to support proactive operational planning.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     9. Security and Access Section
+     ========================================================================== -->
+<section class="landing-section landing-section-alt" id="security">
+    <div class="container">
+        <div class="text-center">
+            <span class="landing-section-pill">Access Protection</span>
+            <h2 class="landing-section-title">Designed Around Responsible Access</h2>
+            <p class="landing-section-desc">
+                Role-based permissions help ensure that users can access only the CRM information and actions appropriate to their responsibilities.
+            </p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon peacock">
+                        <i class="bi bi-shield-lock"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Role-Based Access</h3>
+                    <p class="text-secondary small mb-0">
+                        Distinct permissions separate administrative controls, sales operations, and customer self-service activities.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon teal">
+                        <i class="bi bi-speedometer"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Permission-Aware Dashboards</h3>
+                    <p class="text-secondary small mb-0">
+                        Each user’s dashboard and navigation automatically reflect only the records and tools they are authorized to manage.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon copper">
+                        <i class="bi bi-file-earmark-lock"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Protected Records</h3>
+                    <p class="text-secondary small mb-0">
+                        Customer contact profiles, order details, invoices, and payment histories are kept confidential and protected from unauthorized viewing.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon teal">
+                        <i class="bi bi-clock-history"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Activity History</h3>
+                    <p class="text-secondary small mb-0">
+                        System events and important operational actions are documented to maintain a clear record of team workflows.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="landing-card">
+                    <div class="landing-card-icon peacock">
+                        <i class="bi bi-key"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Secure Authentication</h3>
+                    <p class="text-secondary small mb-0">
+                        Secure session handling, validated authentication, and protected password management safeguard every account.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     10. About Section
+     ========================================================================== -->
+<section class="landing-section" id="about">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <span class="landing-section-pill">About AI CRM</span>
+                <h2 class="landing-section-title">Built for Organized, Customer-Focused Work</h2>
+                <p class="text-secondary mb-3">
+                    AI CRM provides a connected environment for managing customer relationships, team activities, sales operations, and business records. Its structured workflows help reduce scattered information and give users a clearer view of the work that matters.
+                </p>
+                <p class="text-secondary mb-4">
+                    By bringing customer accounts, active leads, item catalogs, orders, invoices, and follow-up activities under unified management, AI CRM enables teams to deliver consistent and professional customer service.
+                </p>
+
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-primary fs-5 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-1">Coordinated Operations</h6>
+                                <p class="text-secondary small mb-0">Align leads, sales, and follow-ups in a structured flow.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-primary fs-5 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-1">Accurate Billing</h6>
+                                <p class="text-secondary small mb-0">Clear invoices, balance tracking, and printable receipts.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-primary fs-5 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-1">Role Clarity</h6>
+                                <p class="text-secondary small mb-0">Focused workspaces tailored for administrators, staff, and customers.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-check-circle-fill text-primary fs-5 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold text-dark mb-1">Actionable Visibility</h6>
+                                <p class="text-secondary small mb-0">Real-time summaries for sales performance and upcoming tasks.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="landing-card shadow-sm p-4">
+                    <h5 class="fw-bold text-dark mb-3 pb-2 border-bottom">Connected Operational Architecture</h5>
+                    <div class="d-flex flex-column gap-3">
+                        <div class="p-3 rounded-3 bg-light border">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-people text-primary fw-bold"></i>
+                                <span class="fw-bold text-dark">Customer & Lead Management</span>
+                            </div>
+                            <span class="text-secondary small">Comprehensive relationship profiles, contact data, and active pipeline stages.</span>
+                        </div>
+                        <div class="p-3 rounded-3 bg-light border">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-cart3 text-primary fw-bold"></i>
+                                <span class="fw-bold text-dark">Sales & Invoicing Operations</span>
+                            </div>
+                            <span class="text-secondary small">Order creation with tax calculation, stock allocation, and accurate billing records.</span>
+                        </div>
+                        <div class="p-3 rounded-3 bg-light border">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-graph-up text-primary fw-bold"></i>
+                                <span class="fw-bold text-dark">Operational Analytics & Reports</span>
+                            </div>
+                            <span class="text-secondary small">Clear insight into revenue generation, payment status, and team activity logs.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     11. Contact Section
+     ========================================================================== -->
+<section class="landing-section landing-section-alt" id="contact">
+    <div class="container">
+        <div class="text-center">
+            <span class="landing-section-pill">Get Started</span>
+            <h2 class="landing-section-title">Ready to Organize Your Customer Operations?</h2>
+            <p class="landing-section-desc">
+                Create a customer account to access the customer portal, or sign in to continue to your authorized workspace.
+            </p>
+        </div>
+
+        <div class="row g-4 justify-content-center">
+            <!-- Customer Registration Card -->
+            <div class="col-md-6 col-lg-5">
+                <div class="landing-card text-center p-4">
+                    <div class="landing-card-icon peacock mx-auto mb-3">
+                        <i class="bi bi-person-plus"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">New Customers</h3>
+                    <p class="text-secondary small mb-4">
+                        Register for a customer account to browse active catalog offerings, view personal orders, track invoices, and access payment receipts.
+                    </p>
+                    <a href="{% url 'accounts:register' %}" class="btn btn-primary fw-semibold px-4 py-2 mt-auto">
+                        <i class="bi bi-person-plus me-1"></i> Create Customer Account
+                    </a>
+                </div>
+            </div>
+
+            <!-- Existing User Login Card -->
+            <div class="col-md-6 col-lg-5">
+                <div class="landing-card text-center p-4">
+                    <div class="landing-card-icon copper mx-auto mb-3">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                    </div>
+                    <h3 class="h5 fw-bold text-dark mb-2">Registered Users</h3>
+                    <p class="text-secondary small mb-4">
+                        Sign in with your credentials to access your authorized administrator, sales staff, or customer workspace.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary fw-semibold px-4 py-2 mt-auto">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Log In to Workspace
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     12. Final Call-to-Action Section
+     ========================================================================== -->
+<section class="landing-section bg-primary text-white py-5" style="background: linear-gradient(135deg, var(--color-sidebar) 0%, var(--color-primary-dark) 50%, var(--color-primary) 100%);">
+    <div class="container text-center py-3">
+        <h2 class="fw-bold text-white mb-3" style="font-size: clamp(1.85rem, 3.5vw, 2.4rem);">
+            Bring Your Customer Operations Into One Connected Workspace
+        </h2>
+        <p class="lead text-white-50 mx-auto mb-4" style="max-width: 680px; font-size: 1.1rem;">
+            Manage relationships, follow-ups, sales, billing, and insights with greater clarity.
+        </p>
+        <div class="d-flex flex-wrap justify-content-center gap-3">
+            {% if request.user.is_authenticated %}
+                <a href="{% url dashboard_url|default:'dashboard:index' %}" class="btn btn-primary btn-lg fw-bold px-4 py-3 shadow">
+                    <i class="bi bi-speedometer2 me-2"></i> Go to Dashboard
+                </a>
+                <a href="#products" class="btn btn-outline-light btn-lg fw-semibold px-4 py-3">
+                    <i class="bi bi-grid me-2"></i> Explore Products & Services
+                </a>
+            {% else %}
+                <a href="{% url 'accounts:register' %}" class="btn btn-primary btn-lg fw-bold px-4 py-3 shadow">
+                    <i class="bi bi-arrow-right-circle me-2"></i> Get Started
+                </a>
+                <a href="{% url 'accounts:login' %}" class="btn btn-outline-light btn-lg fw-semibold px-4 py-3">
+                    <i class="bi bi-box-arrow-in-right me-2"></i> Sign In
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- ==========================================================================
+     13. Professional Footer
+     ========================================================================== -->
+<footer class="landing-footer">
+    <div class="container">
+        <div class="row g-4 justify-content-between">
+            <div class="col-lg-5">
+                <div class="landing-footer-brand">
+                    <img src="{% static 'images/logo.svg' %}" alt="AI CRM Logo" width="36" height="36">
+                    <span class="fw-bold fs-5 text-white">{{ SYSTEM_NAME|default:"AI CRM" }}</span>
+                </div>
+                <p class="small text-white-50 mb-3" style="max-width: 420px;">
+                    A connected platform for customer relationships, sales operations, and business insights.
+                </p>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <h6 class="fw-bold text-white text-uppercase small mb-3" style="letter-spacing: 0.5px;">Product</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><a href="#features">Features</a></li>
+                    <li class="mb-2"><a href="#products">Products & Services</a></li>
+                    <li class="mb-2"><a href="#about">About</a></li>
+                    <li class="mb-2"><a href="#contact">Contact</a></li>
+                </ul>
+            </div>
+
+            <div class="col-6 col-lg-3">
+                <h6 class="fw-bold text-white text-uppercase small mb-3" style="letter-spacing: 0.5px;">Account</h6>
+                <ul class="list-unstyled small">
+                    <li class="mb-2"><a href="{% url 'accounts:login' %}">Log In</a></li>
+                    <li class="mb-2"><a href="{% url 'accounts:register' %}">Create Customer Account</a></li>
+                    <li class="mb-2"><a href="{% url 'accounts:password_reset' %}">Forgot Password</a></li>
+                    {% if request.user.is_authenticated %}
+                        <li class="mb-2"><a href="{% url dashboard_url|default:'dashboard:index' %}">My Dashboard</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <hr class="landing-footer-divider">
+
+        <div class="d-flex flex-wrap align-items-center justify-content-between small text-white-50 gap-2">
+            <div>
+                © {% now "Y" %} {{ SYSTEM_NAME|default:"AI CRM" }}. All rights reserved.
+            </div>
+            <div>
+                <a href="#hero" class="text-white-50 me-3">Back to Top <i class="bi bi-arrow-up-short"></i></a>
+            </div>
+        </div>
+    </div>
+</footer>
+{% endblock %}

@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+
+{% block title %}Customer Dashboard | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Total Purchases</div>
+                    <div class="stat-value">₹{{ total_spent|default:"0.00" }}</div>
+                </div>
+                <div class="stat-icon success"><i class="bi bi-cart-check"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Outstanding Balance</div>
+                    <div class="stat-value">₹{{ total_balance|default:"0.00" }}</div>
+                </div>
+                <div class="stat-icon warning"><i class="bi bi-receipt"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-primary">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">My Invoices</div>
+                    <div class="stat-value">{{ my_invoices.count }}</div>
+                </div>
+                <div class="stat-icon primary"><i class="bi bi-file-earmark-text"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card stat-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-label">Confirmed Orders</div>
+                    <div class="stat-value">{{ my_sales.count }}</div>
+                </div>
+                <div class="stat-icon info"><i class="bi bi-bag-check"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Invoices -->
+    <div class="col-lg-6">
+        <div class="crm-card p-0 overflow-hidden h-100">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-receipt me-2 text-primary"></i>Recent Invoices</h6>
+                <a href="{% url 'sales:customer_invoice_list' %}" class="small text-decoration-none">View All &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Invoice #</th>
+                            <th>Date</th>
+                            <th class="text-end">Balance</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in my_invoices %}
+                        <tr>
+                            <td class="ps-4 fw-bold">
+                                <a href="{% url 'sales:customer_invoice_detail' inv.pk %}" class="text-decoration-none text-primary">
+                                    {{ inv.invoice_number }}
+                                </a>
+                            </td>
+                            <td class="small text-muted">{{ inv.invoice_date|date:"d M, Y" }}</td>
+                            <td class="text-end fw-bold {% if inv.balance_amount > 0 %}text-danger{% else %}text-muted{% endif %}">
+                                ₹{{ inv.balance_amount|floatformat:2 }}
+                            </td>
+                            <td class="text-center">
+                                {% if inv.payment_status == 'PAID' %}
+                                    <span class="badge bg-success-subtle text-success">Paid</span>
+                                {% elif inv.payment_status == 'PARTIALLY_PAID' %}
+                                    <span class="badge bg-warning-subtle text-warning">Partial</span>
+                                {% else %}
+                                    <span class="badge bg-danger-subtle text-danger">Unpaid</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted small">No invoices yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="col-lg-6">
+        <div class="crm-card p-0 overflow-hidden h-100">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-cart-check me-2 text-primary"></i>Recent Orders</h6>
+                <a href="{% url 'sales:customer_sale_list' %}" class="small text-decoration-none">View All &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Order #</th>
+                            <th>Date</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in my_sales %}
+                        <tr>
+                            <td class="ps-4 fw-bold">
+                                <a href="{% url 'sales:customer_sale_detail' s.pk %}" class="text-decoration-none text-primary">
+                                    {{ s.sale_number }}
+                                </a>
+                            </td>
+                            <td class="small text-muted">{{ s.sale_date|date:"d M, Y" }}</td>
+                            <td class="text-end fw-bold text-dark">₹{{ s.net_amount|floatformat:2 }}</td>
+                            <td class="text-center">
+                                {% if s.status == 'COMPLETED' %}
+                                    <span class="badge bg-success-subtle text-success">Completed</span>
+                                {% elif s.status == 'CONFIRMED' %}
+                                    <span class="badge bg-primary-subtle text-primary">Confirmed</span>
+                                {% elif s.status == 'CANCELLED' %}
+                                    <span class="badge bg-danger-subtle text-danger">Cancelled</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Draft</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted small">No orders yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <!-- Reminders & Schedule -->
+    <div class="col-lg-6">
+        <div class="crm-card p-0 overflow-hidden h-100">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-calendar-check me-2 text-primary"></i>My Reminders & Schedule</h6>
+                <a href="{% url 'reminders:customer_reminder_list' %}" class="small text-decoration-none">View All &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Title</th>
+                            <th>Due Date</th>
+                            <th class="text-center">Priority</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in my_reminders %}
+                        <tr>
+                            <td class="ps-4 fw-medium text-dark">{{ r.title }}</td>
+                            <td class="small text-muted">{{ r.due_date|date:"d M, Y H:i" }}</td>
+                            <td class="text-center">
+                                {% if r.priority == 'URGENT' %}
+                                    <span class="badge bg-danger-subtle text-danger">Urgent</span>
+                                {% elif r.priority == 'HIGH' %}
+                                    <span class="badge bg-warning-subtle text-warning">High</span>
+                                {% elif r.priority == 'MEDIUM' %}
+                                    <span class="badge bg-info-subtle text-info">Medium</span>
+                                {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary">Low</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted small">No scheduled reminders.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Communications -->
+    <div class="col-lg-6">
+        <div class="crm-card p-0 overflow-hidden h-100">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-chat-dots me-2 text-primary"></i>Recent Communications</h6>
+                <a href="{% url 'interactions:customer_interaction_list' %}" class="small text-decoration-none">View All &rarr;</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light small text-uppercase">
+                        <tr>
+                            <th class="ps-4">Subject</th>
+                            <th>Type</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for it in my_interactions %}
+                        <tr>
+                            <td class="ps-4 fw-medium text-dark">{{ it.subject }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ it.get_interaction_type_display }}</span></td>
+                            <td class="small text-muted">{{ it.interaction_date|date:"d M, Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center py-4 text-muted small">No communication records yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

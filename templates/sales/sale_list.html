@@ -1,0 +1,218 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<a href="{% url 'sales:sale_create' %}" class="btn btn-primary shadow-sm" id="btn-create-sale">
+    <i class="bi bi-plus-lg me-1"></i> New Sales Order
+</a>
+<a href="{% url 'sales:invoice_list' %}" class="btn btn-outline-secondary shadow-sm" id="btn-view-invoices">
+    <i class="bi bi-receipt me-1"></i> Invoices
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-primary border-3">
+            <div class="text-muted small fw-medium">Total Orders</div>
+            <div class="h4 fw-bold text-dark mb-0 mt-1">{{ total_sales_count|default:0 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-success border-3">
+            <div class="text-muted small fw-medium">Confirmed Revenue</div>
+            <div class="h4 fw-bold text-success mb-0 mt-1">₹{{ total_revenue|floatformat:2 }}</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-warning border-3">
+            <div class="text-muted small fw-medium">Draft Pipeline</div>
+            <div class="h4 fw-bold text-warning-emphasis mb-0 mt-1">
+                {{ sales.paginator.count|default:0 }}
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="crm-card py-2 px-3 mb-0 h-100 border-start border-info border-3">
+            <div class="text-muted small fw-medium">Today's Date</div>
+            <div class="h6 fw-bold text-dark mb-0 mt-2">{% now "d M, Y" %}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters Bar Card -->
+<div class="crm-card mb-4">
+    <form method="get" class="row g-2 align-items-center">
+        <!-- Search Query -->
+        <div class="col-md-3">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0" placeholder="Search order #, customer, staff...">
+            </div>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="col-sm-6 col-md-2">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                {% for code, name in status_choices %}
+                    <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Date Range -->
+        <div class="col-sm-6 col-md-2">
+            <input type="date" name="date_from" value="{{ date_from }}" class="form-control" title="Date From" placeholder="From">
+        </div>
+        <div class="col-sm-6 col-md-2">
+            <input type="date" name="date_to" value="{{ date_to }}" class="form-control" title="Date To" placeholder="To">
+        </div>
+
+        <!-- Sorting -->
+        <div class="col-sm-6 col-md-2">
+            <select name="sort" class="form-select">
+                <option value="-sale_date" {% if sort == '-sale_date' %}selected{% endif %}>Date (Newest)</option>
+                <option value="sale_date" {% if sort == 'sale_date' %}selected{% endif %}>Date (Oldest)</option>
+                <option value="-net_amount" {% if sort == '-net_amount' %}selected{% endif %}>Amount (High-Low)</option>
+                <option value="net_amount" {% if sort == 'net_amount' %}selected{% endif %}>Amount (Low-High)</option>
+            </select>
+        </div>
+
+        <!-- Filter Actions -->
+        <div class="col-12 col-md-1 d-flex gap-1">
+            <button type="submit" class="btn btn-primary w-100" title="Apply Filters">
+                <i class="bi bi-funnel-fill"></i>
+            </button>
+            {% if search_query or status_filter or date_from or date_to or sort != '-sale_date' %}
+                <a href="{% url 'sales:sale_list' %}" class="btn btn-outline-secondary" title="Clear Filters">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Sales Orders Table Card -->
+<div class="crm-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th class="ps-4">Order #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Sales Staff</th>
+                    <th class="text-end">Net Amount</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Invoice</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sale in sales %}
+                <tr>
+                    <td class="ps-4">
+                        <a href="{% url 'sales:sale_detail' sale.pk %}" class="fw-bold text-primary text-decoration-none">
+                            {{ sale.sale_number }}
+                        </a>
+                        {% if sale.notes %}
+                        <span class="ms-1 text-muted" title="{{ sale.notes }}"><i class="bi bi-info-circle"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="text-nowrap text-secondary small">
+                        {{ sale.sale_date|date:"d M, Y" }}
+                    </td>
+                    <td>
+                        <div class="fw-semibold text-dark">{{ sale.customer.user.full_name|default:sale.customer.user.username }}</div>
+                        {% if sale.customer.company %}
+                        <div class="small text-muted">{{ sale.customer.company }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="small text-secondary">
+                        {{ sale.sales_staff.user.full_name|default:sale.sales_staff.user.username }}
+                    </td>
+                    <td class="text-end fw-bold text-dark text-nowrap">
+                        ₹{{ sale.net_amount|floatformat:2 }}
+                    </td>
+                    <td class="text-center">
+                        {% if sale.status == 'DRAFT' %}
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle px-2 py-1">Draft</span>
+                        {% elif sale.status == 'CONFIRMED' %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">Confirmed</span>
+                        {% elif sale.status == 'COMPLETED' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Completed</span>
+                        {% elif sale.status == 'CANCELLED' %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Cancelled</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if sale.has_invoice %}
+                            <a href="{% url 'sales:invoice_detail' sale.invoice.pk %}" class="badge bg-info-subtle text-info border border-info-subtle text-decoration-none px-2 py-1">
+                                {{ sale.invoice.invoice_number }}
+                            </a>
+                        {% else %}
+                            <span class="text-muted small">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4 text-nowrap">
+                        <a href="{% url 'sales:sale_detail' sale.pk %}" class="btn btn-sm btn-outline-primary" title="View Details">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        {% if sale.status == 'DRAFT' %}
+                        <a href="{% url 'sales:sale_update' sale.pk %}" class="btn btn-sm btn-outline-secondary ms-1" title="Edit Order">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-cart-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                        <p class="mb-2 fw-semibold">No sales orders found.</p>
+                        <a href="{% url 'sales:sale_create' %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-lg me-1"></i> Create First Order
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top d-flex align-items-center justify-content-between py-3 px-4">
+        <span class="small text-muted">
+            Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} orders
+        </span>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">&laquo;</a>
+                </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if sort %}&sort={{ sort }}{% endif %}">&raquo;</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

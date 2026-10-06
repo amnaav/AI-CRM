@@ -1,0 +1,24 @@
+{% if breadcrumbs or page_title %}
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-4 pb-2 border-bottom">
+    <div>
+        <h2 class="h4 fw-bold text-dark mb-1">{{ page_title|default:"Overview" }}</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0 small text-muted">
+                <li class="breadcrumb-item"><a href="{% url 'dashboard:index' %}" class="text-decoration-none text-primary">Home</a></li>
+                {% for item in breadcrumbs %}
+                    {% if forloop.last %}
+                        <li class="breadcrumb-item active" aria-current="page">{{ item.title }}</li>
+                    {% else %}
+                        <li class="breadcrumb-item"><a href="{{ item.url }}" class="text-decoration-none text-secondary">{{ item.title }}</a></li>
+                    {% endif %}
+                {% empty %}
+                    <li class="breadcrumb-item active" aria-current="page">{{ page_title|default:"Dashboard" }}</li>
+                {% endfor %}
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex gap-2 mt-2 mt-md-0">
+        {% block page_actions %}{% endblock %}
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Lead Pipeline Report | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h4 fw-bold text-dark mb-1">Lead Pipeline Report</h2>
+            <p class="text-muted small mb-0">Total matching leads: <b>{{ total_count }}</b></p>
+        </div>
+        <a href="{% url 'reports:index' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i> Reports Catalog
+        </a>
+    </div>
+
+    <!-- Filter Bar with Status Slot -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3 p-md-4">
+            <form method="get" class="row g-2 align-items-center" id="reportFilterForm">
+                <input type="hidden" name="export" id="exportFormatInput" value="">
+
+                <div class="col-12 mb-2">
+                    <div class="btn-group btn-group-sm flex-wrap w-100" role="group">
+                        <a href="?preset=all{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'all' or not active_preset %}btn-primary{% else %}btn-outline-secondary{% endif %}">All Time</a>
+                        <a href="?preset=today{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'today' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Today</a>
+                        <a href="?preset=this_month{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'this_month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Month</a>
+                        <a href="?preset=last_month{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'last_month' %}btn-primary{% else %}btn-outline-secondary{% endif %}">Last Month</a>
+                        <a href="?preset=this_quarter{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'this_quarter' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Quarter</a>
+                        <a href="?preset=this_year{% if selected_status %}&status={{ selected_status }}{% endif %}" class="btn {% if active_preset == 'this_year' %}btn-primary{% else %}btn-outline-secondary{% endif %}">This Year</a>
+                    </div>
+                </div>
+
+                <div class="col-sm-6 col-md-2">
+                    <label class="form-label small text-muted mb-1">From Date</label>
+                    <input type="date" name="start_date" class="form-control form-control-sm" value="{{ start_date }}">
+                </div>
+                <div class="col-sm-6 col-md-2">
+                    <label class="form-label small text-muted mb-1">To Date</label>
+                    <input type="date" name="end_date" class="form-control form-control-sm" value="{{ end_date }}">
+                </div>
+                <div class="col-sm-6 col-md-2">
+                    <label class="form-label small text-muted mb-1">Pipeline Stage</label>
+                    <select name="status" class="form-select form-select-sm">
+                        <option value="">All Stages</option>
+                        {% for st_val, st_label in status_choices %}
+                        <option value="{{ st_val }}" {% if selected_status == st_val %}selected{% endif %}>{{ st_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-3">
+                    <label class="form-label small text-muted mb-1">Search Keywords</label>
+                    <input type="text" name="q" class="form-control form-control-sm" placeholder="Lead code, name, company..." value="{{ q }}">
+                </div>
+                <div class="col-sm-12 col-md-3 d-flex align-items-end gap-2 mt-3 mt-md-0">
+                    <button type="submit" class="btn btn-primary btn-sm flex-grow-1" onclick="document.getElementById('exportFormatInput').value='';">
+                        <i class="bi bi-funnel me-1"></i> Apply
+                    </button>
+                    <a href="?" class="btn btn-outline-secondary btn-sm" title="Clear Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+
+                    <!-- Export Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-success btn-sm dropdown-toggle fw-semibold" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-download me-1"></i> Export
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                            <li><button type="button" class="dropdown-item" onclick="triggerExport('csv')"><i class="bi bi-filetype-csv text-primary me-2"></i> CSV (.csv)</button></li>
+                            <li><button type="button" class="dropdown-item" onclick="triggerExport('xlsx')"><i class="bi bi-file-earmark-excel text-success me-2"></i> Excel (.xlsx)</button></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><button type="button" class="dropdown-item" onclick="triggerExport('pdf')"><i class="bi bi-file-earmark-pdf text-danger me-2"></i> PDF (.pdf)</button></li>
+                        </ul>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Table Preview -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 small">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Lead Code</th>
+                            <th>Full Name</th>
+                            <th>Company</th>
+                            <th>Source</th>
+                            <th>Status</th>
+                            <th>Estimated Value</th>
+                            <th>Priority</th>
+                            <th>AI Score</th>
+                            <th>Assigned Staff</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lead in page_obj %}
+                        <tr>
+                            <td class="fw-bold">{{ lead.lead_code }}</td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ lead.full_name }}</div>
+                                <small class="text-muted">{{ lead.email }}</small>
+                            </td>
+                            <td>{{ lead.company|default:"-" }}</td>
+                            <td><span class="badge bg-light text-secondary border">{{ lead.get_source_display }}</span></td>
+                            <td>
+                                {% if lead.status == 'WON' %}
+                                <span class="badge bg-success">Closed Won</span>
+                                {% elif lead.status == 'LOST' %}
+                                <span class="badge bg-danger">Closed Lost</span>
+                                {% else %}
+                                <span class="badge bg-primary-subtle text-primary">{{ lead.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-bold text-dark">₹{{ lead.estimated_value|floatformat:2 }}</td>
+                            <td>
+                                {% if lead.ai_priority == 'HIGH' %}
+                                <span class="badge bg-danger-subtle text-danger">HIGH</span>
+                                {% elif lead.ai_priority == 'MEDIUM' %}
+                                <span class="badge bg-warning-subtle text-warning">MED</span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary">LOW</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-semibold text-primary">{{ lead.probability_score }}%</div>
+                            </td>
+                            <td>
+                                {% if lead.assigned_staff %}
+                                <span class="badge bg-light text-dark border">{{ lead.assigned_staff.user.get_full_name|default:lead.assigned_staff.user.username }}</span>
+                                {% else %}
+                                <span class="text-muted">Unassigned</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-muted">{{ lead.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center py-5 text-muted">
+                                <i class="bi bi-funnel fs-1 d-block mb-2"></i>
+                                No leads found matching the criteria.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if page_obj.has_other_pages %}
+        <div class="card-footer bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <small class="text-muted">Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ total_count }}</small>
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">Previous</a></li>
+                    {% endif %}
+                    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+                    {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if q %}&q={{ q }}{% endif %}{% if selected_status %}&status={{ selected_status }}{% endif %}">Next</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function triggerExport(format) {
+    const form = document.getElementById('reportFilterForm');
+    const exportInput = document.getElementById('exportFormatInput');
+    exportInput.value = format;
+    form.submit();
+    setTimeout(() => { exportInput.value = ''; }, 1000);
+}
+</script>
+{% endblock %}

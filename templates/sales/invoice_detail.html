@@ -1,0 +1,212 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+<div class="d-flex gap-2">
+    <a href="{% url 'sales:invoice_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back to Invoices
+    </a>
+    <a href="{% url 'sales:invoice_print' invoice.pk %}" target="_blank" class="btn btn-outline-primary" id="btn-print-invoice">
+        <i class="bi bi-printer me-1"></i> Print Tax Invoice
+    </a>
+    {% if invoice.balance_amount > 0 and invoice.invoice_status != 'CANCELLED' %}
+    <a href="{% url 'sales:payment_create' invoice.pk %}" class="btn btn-success shadow-sm" id="btn-record-payment">
+        <i class="bi bi-credit-card me-1"></i> Record Payment
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Left 8 cols: Invoice Document View -->
+    <div class="col-lg-8">
+        <div class="crm-card mb-4" id="printable-invoice-card">
+            <!-- Invoice Header -->
+            <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+                <div>
+                    <h3 class="fw-bold text-dark mb-1">{{ SYSTEM_NAME }}</h3>
+                    <div class="text-secondary small">TAX INVOICE &bull; GST COMPLIANT</div>
+                    <div class="h5 fw-bold text-primary mt-3 mb-0">{{ invoice.invoice_number }}</div>
+                    <div class="small text-muted">Ref SO: <a href="{% url 'sales:sale_detail' sale.pk %}" class="text-decoration-none">{{ sale.sale_number }}</a></div>
+                </div>
+                <div class="text-end">
+                    {% if invoice.payment_status == 'PAID' %}
+                        <span class="badge bg-success fs-6 px-3 py-2 mb-2 d-inline-block">PAID FULLY</span>
+                    {% elif invoice.payment_status == 'PARTIALLY_PAID' %}
+                        <span class="badge bg-warning text-dark fs-6 px-3 py-2 mb-2 d-inline-block">PARTIALLY PAID</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-6 px-3 py-2 mb-2 d-inline-block">UNPAID</span>
+                    {% endif %}
+                    <div class="small text-muted">Date: <span class="fw-semibold text-dark">{{ invoice.invoice_date|date:"d M, Y" }}</span></div>
+                    <div class="small {% if invoice.is_overdue %}text-danger fw-bold{% else %}text-muted{% endif %}">
+                        Due Date: {{ invoice.due_date|date:"d M, Y" }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Customer Billing Snapshot -->
+            <div class="row g-3 mb-4">
+                <div class="col-sm-6">
+                    <div class="p-3 bg-light rounded-3 h-100">
+                        <div class="text-muted small text-uppercase fw-semibold mb-2">Billed To (Snapshot)</div>
+                        <div class="fw-bold text-dark fs-6">{{ invoice.customer_name }}</div>
+                        {% if invoice.customer_company %}
+                        <div class="text-secondary small fw-medium">{{ invoice.customer_company }}</div>
+                        {% endif %}
+                        <div class="small text-secondary mt-2">
+                            {% if invoice.billing_address %}
+                                <div>{{ invoice.billing_address }}</div>
+                                <div>{{ invoice.billing_city }}{% if invoice.billing_state %}, {{ invoice.billing_state }}{% endif %}{% if invoice.billing_postal_code %} - {{ invoice.billing_postal_code }}{% endif %}</div>
+                            {% endif %}
+                            {% if invoice.customer_email %}
+                                <div><i class="bi bi-envelope me-1"></i> {{ invoice.customer_email }}</div>
+                            {% endif %}
+                            {% if invoice.customer_phone %}
+                                <div><i class="bi bi-telephone me-1"></i> {{ invoice.customer_phone }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="p-3 bg-light rounded-3 h-100">
+                        <div class="text-muted small text-uppercase fw-semibold mb-2">Payment Summary</div>
+                        <div class="d-flex justify-content-between small py-1">
+                            <span class="text-secondary">Invoice Amount:</span>
+                            <span class="fw-bold text-dark">₹{{ invoice.total_amount|floatformat:2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small py-1">
+                            <span class="text-secondary">Total Paid:</span>
+                            <span class="fw-bold text-success">₹{{ invoice.paid_amount|floatformat:2 }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between small py-1 border-top mt-1">
+                            <span class="fw-bold text-dark">Balance Due:</span>
+                            <span class="h6 fw-bold text-danger mb-0">₹{{ invoice.balance_amount|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line Items Table -->
+            <div class="table-responsive mb-4">
+                <table class="table table-bordered align-middle mb-0">
+                    <thead class="table-light text-muted small text-uppercase">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Line Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="text-muted">{{ forloop.counter }}</td>
+                            <td>
+                                <div class="fw-semibold text-dark">{{ item.product.product_name }}</div>
+                                <div class="small text-muted">{{ item.product.product_code }}</div>
+                            </td>
+                            <td class="text-center fw-bold">{{ item.quantity }}</td>
+                            <td class="text-end">₹{{ item.unit_price|floatformat:2 }}</td>
+                            <td class="text-end fw-semibold">₹{{ item.line_total|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-light">
+                        <tr>
+                            <td colspan="4" class="text-end text-secondary small">Gross Subtotal:</td>
+                            <td class="text-end fw-semibold">₹{{ invoice.subtotal|floatformat:2 }}</td>
+                        </tr>
+                        {% if invoice.discount > 0 %}
+                        <tr>
+                            <td colspan="4" class="text-end text-danger small">Order Discount:</td>
+                            <td class="text-end text-danger fw-semibold">-₹{{ invoice.discount|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td colspan="4" class="text-end text-secondary small">Taxable Base:</td>
+                            <td class="text-end fw-semibold">₹{{ invoice.taxable_amount|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="4" class="text-end text-secondary small">GST ({{ invoice.tax_rate|floatformat:2 }}%):</td>
+                            <td class="text-end fw-semibold">+₹{{ invoice.tax_amount|floatformat:2 }}</td>
+                        </tr>
+                        <tr class="table-primary">
+                            <td colspan="4" class="text-end fw-bold text-dark fs-6">Grand Total:</td>
+                            <td class="text-end fw-bold text-primary fs-6">₹{{ invoice.total_amount|floatformat:2 }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right 4 cols: Payment History & Actions -->
+    <div class="col-lg-4">
+        <!-- Balance Card -->
+        <div class="crm-card mb-4 border-start border-4 {% if invoice.balance_amount == 0 %}border-success{% else %}border-danger{% endif %}">
+            <div class="text-muted small text-uppercase fw-semibold">Outstanding Balance</div>
+            <div class="h3 fw-bold {% if invoice.balance_amount == 0 %}text-success{% else %}text-danger{% endif %} mb-2">
+                ₹{{ invoice.balance_amount|floatformat:2 }}
+            </div>
+            {% if invoice.balance_amount > 0 and invoice.invoice_status != 'CANCELLED' %}
+            <a href="{% url 'sales:payment_create' invoice.pk %}" class="btn btn-success w-100 shadow-sm">
+                <i class="bi bi-credit-card me-1"></i> Record Payment
+            </a>
+            {% elif invoice.balance_amount == 0 %}
+            <div class="text-success small fw-medium">
+                <i class="bi bi-check-circle-fill me-1"></i> This invoice has been settled in full.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Payments Log -->
+        <div class="crm-card p-0 overflow-hidden">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-clock-history me-1 text-primary"></i>Payment History</h6>
+                <span class="badge bg-secondary-subtle text-secondary">{{ payments.count }}</span>
+            </div>
+            <div class="p-3">
+                {% for p in payments %}
+                <div class="p-3 mb-2 rounded-3 border {% if p.is_reversed %}bg-light opacity-75 border-danger-subtle{% else %}bg-white border-success-subtle shadow-sm{% endif %}">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <a href="{% url 'sales:payment_detail' p.pk %}" class="fw-bold text-dark text-decoration-none">
+                            {{ p.payment_number }}
+                        </a>
+                        <span class="fw-bold {% if p.is_reversed %}text-muted text-decoration-line-through{% else %}text-success{% endif %}">
+                            ₹{{ p.amount|floatformat:2 }}
+                        </span>
+                    </div>
+                    <div class="small text-secondary mb-1">
+                        <span><i class="bi bi-credit-card-2-front me-1"></i>{{ p.get_payment_method_display }}</span>
+                        {% if p.transaction_reference %}
+                            &bull; <code>{{ p.transaction_reference }}</code>
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center small text-muted">
+                        <span>{{ p.payment_date|date:"d M, Y H:i" }}</span>
+                        {% if p.is_reversed %}
+                            <span class="badge bg-danger-subtle text-danger">Reversed</span>
+                        {% else %}
+                            <span class="badge bg-success-subtle text-success">Completed</span>
+                        {% endif %}
+                    </div>
+                    {% if p.is_reversed and p.reversal_reason %}
+                    <div class="small text-danger border-top border-danger-subtle mt-2 pt-1">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reversal: {{ p.reversal_reason }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted small">
+                    <i class="bi bi-wallet2 fs-2 d-block mb-1 opacity-50"></i>
+                    No payments recorded for this invoice yet.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

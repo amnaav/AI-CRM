@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ item.product_name }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block page_actions %}
+{% if is_admin %}
+<a href="{% url 'catalog:product_update' pk=item.pk %}" class="btn btn-outline-secondary shadow-sm">
+    <i class="bi bi-pencil me-1"></i> Edit
+</a>
+<form method="post" action="{% url 'catalog:product_toggle_status' pk=item.pk %}" class="d-inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{% url 'catalog:product_detail' pk=item.pk %}">
+    {% if item.status == 'ACTIVE' %}
+    <button type="submit" class="btn btn-outline-warning shadow-sm" title="Deactivate Item">
+        <i class="bi bi-pause-circle me-1"></i> Deactivate
+    </button>
+    {% else %}
+    <button type="submit" class="btn btn-outline-success shadow-sm" title="Activate Item">
+        <i class="bi bi-play-circle me-1"></i> Activate
+    </button>
+    {% endif %}
+</form>
+{% if not item.has_sales_history and not adjustments %}
+<form method="post" action="{% url 'catalog:product_delete' pk=item.pk %}" class="d-inline" data-confirm="Are you sure you want to delete this unused item?">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-outline-danger shadow-sm">
+        <i class="bi bi-trash me-1"></i> Delete
+    </button>
+</form>
+{% endif %}
+{% endif %}
+<a href="{% url 'catalog:product_list' %}" class="btn btn-light border shadow-sm">
+    <i class="bi bi-arrow-left me-1"></i> Back to Catalog
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Item Details Card -->
+    <div class="col-lg-8">
+        <div class="crm-card h-100">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 pb-3 mb-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-secondary-subtle text-secondary fw-mono fs-6">{{ item.product_code }}</span>
+                    {% if item.item_type == 'PRODUCT' %}
+                    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">Physical Product</span>
+                    {% else %}
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">Service</span>
+                    {% endif %}
+                    {% if item.status == 'ACTIVE' %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle me-1"></i>Active</span>
+                    {% else %}
+                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="bi bi-dash-circle me-1"></i>Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="small text-muted">
+                    <i class="bi bi-folder me-1"></i> Category:
+                    <a href="{% if is_admin %}{% url 'catalog:category_detail' pk=item.category.pk %}{% else %}#{% endif %}" class="fw-semibold text-decoration-none text-dark">
+                        {{ item.category.category_name }}
+                    </a>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                {% if item.image %}
+                <div class="col-md-4 text-center">
+                    <img src="{{ item.image.url }}" alt="{{ item.product_name }}" class="img-fluid rounded border shadow-sm object-fit-cover w-100" style="max-height: 220px;">
+                </div>
+                {% endif %}
+
+                <div class="{% if item.image %}col-md-8{% else %}col-12{% endif %}">
+                    <h3 class="fw-bold text-dark mb-2">{{ item.product_name }}</h3>
+                    <div class="h4 fw-bold text-primary mb-3">₹{{ item.unit_price }}</div>
+
+                    <h6 class="text-muted fw-semibold small text-uppercase mb-2">Description</h6>
+                    <p class="text-secondary mb-4">{{ item.description|default:"No description provided."|linebreaksbr }}</p>
+
+                    <div class="row g-2 small text-muted pt-3 border-top">
+                        <div class="col-sm-6"><i class="bi bi-calendar-plus me-1"></i>Created: {{ item.created_at|date:"M d, Y H:i" }}</div>
+                        <div class="col-sm-6"><i class="bi bi-clock-history me-1"></i>Last Updated: {{ item.updated_at|date:"M d, Y H:i" }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inventory & Stock Status Card -->
+    <div class="col-lg-4">
+        <div class="crm-card h-100">
+            <h5 class="fw-bold text-dark mb-3"><i class="bi bi-boxes me-2 text-primary"></i>Stock & Availability</h5>
+
+            {% if item.item_type == 'PRODUCT' %}
+            <div class="p-3 border rounded bg-light mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small">Current Inventory</span>
+                    {% if item.is_out_of_stock %}
+                    <span class="badge bg-danger text-white"><i class="bi bi-x-circle me-1"></i>Out of Stock</span>
+                    {% elif item.is_low_stock %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>
+                    {% else %}
+                    <span class="badge bg-success text-white"><i class="bi bi-check-circle me-1"></i>In Stock</span>
+                    {% endif %}
+                </div>
+                <div class="display-6 fw-bold text-dark">{{ item.stock_quantity }} <span class="fs-6 text-muted fw-normal">units</span></div>
+                <div class="text-muted small mt-2">
+                    <i class="bi bi-bell me-1"></i>Reorder threshold: <strong>{{ item.reorder_level }} units</strong>
+                </div>
+            </div>
+
+            {% if item.has_sales_history %}
+            <div class="alert alert-info py-2 px-3 small mb-3">
+                <i class="bi bi-cart-check me-1"></i> This product has recorded CRM sales history.
+            </div>
+            {% endif %}
+
+            {% if is_admin %}
+            <!-- Controlled Stock Adjustment Form Button / Trigger -->
+            <div class="mt-4 pt-3 border-top" id="adjust-stock">
+                <h6 class="fw-bold text-dark mb-2"><i class="bi bi-sliders me-1 text-primary"></i>Adjust Inventory</h6>
+                <p class="small text-muted mb-3">Execute transaction-safe stock changes with audit logs.</p>
+
+                <form method="post" action="{% url 'catalog:product_stock_adjust' pk=item.pk %}">
+                    {% csrf_token %}
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Adjustment Type</label>
+                        {{ stock_form.adjustment_type }}
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small fw-semibold">Quantity Change (+ / -)</label>
+                        {{ stock_form.quantity_changed }}
+                        <div class="form-text small text-muted">{{ stock_form.quantity_changed.help_text }}</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Reason / Audit Memo</label>
+                        {{ stock_form.reason }}
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check2-circle me-1"></i> Apply Stock Adjustment
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Service Notice -->
+            <div class="p-3 border rounded bg-light text-center py-4">
+                <i class="bi bi-briefcase display-6 text-primary opacity-50 mb-2 d-block"></i>
+                <h6 class="fw-bold text-dark">Service / Consulting Item</h6>
+                <p class="text-muted small mb-0">Services do not require physical stock tracking or inventory management.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if is_admin and item.item_type == 'PRODUCT' %}
+<!-- Stock Adjustment Audit History Table (Admin Only) -->
+<div class="crm-card p-0 overflow-hidden mb-4">
+    <div class="p-3 border-bottom d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="fw-bold mb-0 text-dark"><i class="bi bi-clock-history me-2 text-primary"></i>Stock Adjustment Audit History</h5>
+            <span class="text-muted small">Immutable record of all stock additions, deductions, and corrections</span>
+        </div>
+        <span class="badge bg-light text-dark border">{{ adjustments.count }} entries</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 small">
+            <thead class="table-light">
+                <tr>
+                    <th class="ps-3">Date & Time</th>
+                    <th>Adjustment Type</th>
+                    <th class="text-center">Change</th>
+                    <th class="text-center">Before</th>
+                    <th class="text-center">After</th>
+                    <th>Reason / Notes</th>
+                    <th class="pe-3">User</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for adj in adjustments %}
+                <tr>
+                    <td class="ps-3 text-muted fw-mono">{{ adj.created_at|date:"Y-m-d H:i:s" }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ adj.get_adjustment_type_display }}</span>
+                    </td>
+                    <td class="text-center fw-bold {% if adj.quantity_changed > 0 %}text-success{% else %}text-danger{% endif %}">
+                        {{ adj.quantity_changed|stringformat:"+d" }}
+                    </td>
+                    <td class="text-center text-muted">{{ adj.quantity_before }}</td>
+                    <td class="text-center fw-semibold text-dark">{{ adj.quantity_after }}</td>
+                    <td class="text-truncate" style="max-width: 250px;" title="{{ adj.reason }}">
+                        {{ adj.reason|default:"—" }}
+                    </td>
+                    <td class="pe-3">
+                        {% if adj.user %}
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ adj.user.username }}</span>
+                        {% else %}
+                        <span class="text-muted">System</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">
+                        <i class="bi bi-clock display-6 text-secondary opacity-50 mb-2 d-block"></i>
+                        No stock adjustments have been recorded for this product yet.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

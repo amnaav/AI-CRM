@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Login | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block auth_content %}
+<div class="auth-page-wrapper auth-page">
+    <div class="auth-card">
+        <!-- Brand Header -->
+        <div class="text-center mb-3">
+            <img src="{% static 'images/logo.svg' %}" alt="AI CRM Logo" width="48" height="48" class="mb-2">
+            <h1 class="h4 fw-bold text-dark mb-1">{{ SYSTEM_NAME }}</h1>
+            <p class="text-secondary small mb-0">Intelligent Customer Relationship Management</p>
+        </div>
+
+        {% if form.errors and not form.non_field_errors %}
+            <div class="alert alert-danger py-2 px-3 small rounded-3 mb-2">
+                Invalid credentials. Please verify your details.
+            </div>
+        {% endif %}
+
+        {% if form.non_field_errors %}
+            {% for error in form.non_field_errors %}
+                <div class="alert alert-danger py-2 px-3 small rounded-3 mb-2">
+                    {{ error }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="mb-2">
+                <label for="{{ form.username.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">Username or Email</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <div class="text-danger small mt-1">{{ form.username.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-2">
+                <label for="{{ form.password.id_for_label }}" class="form-label small fw-semibold text-dark mb-1">Password</label>
+                {{ form.password }}
+                <div class="text-end mt-1">
+                    <a href="{% url 'accounts:password_reset' %}" class="small text-decoration-none text-primary fw-medium">Forgot Password?</a>
+                </div>
+                {% if form.password.errors %}
+                    <div class="text-danger small mt-1">{{ form.password.errors.0 }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 fw-bold mt-2 shadow-sm">
+                <i class="bi bi-box-arrow-in-right me-2"></i> Log In
+            </button>
+        </form>
+
+        <div class="mt-3 pt-2 border-top text-center">
+            <span class="text-secondary small">New customer?</span>
+            <a href="{% url 'accounts:register' %}" class="text-primary small fw-bold text-decoration-none ms-1">
+                Register Customer Account
+            </a>
+            <div class="mt-1 text-muted" style="font-size: 0.75rem;">
+                <em>Note: Sales Staff & Administrator accounts are provisioned by enterprise admin.</em>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

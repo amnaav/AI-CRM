@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="fw-bold text-dark mb-1">My Invoices</h4>
+        <div class="text-muted small">View your billing invoices and payment statuses</div>
+    </div>
+</div>
+
+<div class="crm-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light text-muted small text-uppercase">
+                <tr>
+                    <th class="ps-4">Invoice #</th>
+                    <th>Date</th>
+                    <th>Due Date</th>
+                    <th class="text-end">Total Amount</th>
+                    <th class="text-end">Paid Amount</th>
+                    <th class="text-end">Balance Due</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                    <td class="ps-4 fw-bold">
+                        <a href="{% url 'sales:customer_invoice_detail' invoice.pk %}" class="text-decoration-none text-primary">
+                            {{ invoice.invoice_number }}
+                        </a>
+                    </td>
+                    <td class="text-secondary small">{{ invoice.invoice_date|date:"d M, Y" }}</td>
+                    <td class="small {% if invoice.is_overdue %}text-danger fw-bold{% else %}text-secondary{% endif %}">
+                        {{ invoice.due_date|date:"d M, Y" }}
+                    </td>
+                    <td class="text-end fw-bold text-dark">₹{{ invoice.total_amount|floatformat:2 }}</td>
+                    <td class="text-end text-success fw-semibold">₹{{ invoice.paid_amount|floatformat:2 }}</td>
+                    <td class="text-end fw-bold {% if invoice.balance_amount > 0 %}text-danger{% else %}text-muted{% endif %}">
+                        ₹{{ invoice.balance_amount|floatformat:2 }}
+                    </td>
+                    <td class="text-center">
+                        {% if invoice.payment_status == 'PAID' %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">Fully Paid</span>
+                        {% elif invoice.payment_status == 'PARTIALLY_PAID' %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-1">Partially Paid</span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">Unpaid</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end pe-4 text-nowrap">
+                        <a href="{% url 'sales:customer_invoice_detail' invoice.pk %}" class="btn btn-sm btn-outline-primary" title="View">
+                            <i class="bi bi-eye"></i>
+                        </a>
+                        <a href="{% url 'sales:customer_invoice_print' invoice.pk %}" target="_blank" class="btn btn-sm btn-outline-secondary ms-1" title="Print Tax Invoice">
+                            <i class="bi bi-printer"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-receipt-cutoff fs-1 opacity-50 d-block mb-2"></i>
+                        <p class="mb-0 fw-semibold">No invoices available.</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3 px-4">
+        <span class="small text-muted">Showing {{ page_obj.start_index }}–{{ page_obj.end_index }} of {{ page_obj.paginator.count }} invoices</span>
+        <ul class="pagination pagination-sm mb-0">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">&laquo;</a></li>
+            {% endif %}
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>
+            {% endif %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

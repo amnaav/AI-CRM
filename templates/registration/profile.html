@@ -1,0 +1,90 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile | {{ SYSTEM_NAME }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Left Column: User Summary Card -->
+    <div class="col-lg-4">
+        <div class="crm-card text-center">
+            <div class="profile-avatar mx-auto mb-3" style="width: 72px; height: 72px; font-size: 2rem;">
+                {{ user.first_name|default:user.username|slice:":1"|upper }}
+            </div>
+            <h4 class="fw-bold mb-1">{{ user.full_name|default:user.username }}</h4>
+            <div class="text-secondary small mb-2">{{ user.email }}</div>
+            <span class="badge badge-role {% if user.is_admin %}badge-role-admin{% elif user.is_sales_staff %}badge-role-staff{% else %}badge-role-customer{% endif %} mb-3">
+                {{ user.get_role_display }}
+            </span>
+            <div class="border-top pt-3 text-start small">
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary">User Code:</span>
+                    <strong class="text-dark">{{ user.user_code }}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary">Phone:</span>
+                    <strong class="text-dark">{{ user.phone|default:"Not provided" }}</strong>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary">Account Status:</span>
+                    <span class="badge badge-status-active">{{ user.get_status_display }}</span>
+                </div>
+                <div class="d-flex justify-content-between py-1">
+                    <span class="text-secondary">Member Since:</span>
+                    <strong class="text-dark">{{ user.created_at|date:"M d, Y" }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Edit Profile Form -->
+    <div class="col-lg-8">
+        <div class="crm-card">
+            <h5 class="fw-bold text-dark mb-3">Edit Profile Information</h5>
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Full Name</label>
+                        {{ user_form.full_name }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Phone Number</label>
+                        {{ user_form.phone }}
+                    </div>
+                    {% if customer_form %}
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Company Name</label>
+                        {{ customer_form.company }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold">Street Address</label>
+                        {{ customer_form.address }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">City</label>
+                        {{ customer_form.city }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">State</label>
+                        {{ customer_form.state }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold">Postal Code</label>
+                        {{ customer_form.postal_code }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="mt-4 pt-2 border-top d-flex gap-2">
+                    <button type="submit" class="btn btn-primary px-4 fw-medium">
+                        <i class="bi bi-check2-circle me-1"></i> Save Changes
+                    </button>
+                    <a href="{% url 'accounts:password_change' %}" class="btn btn-outline-secondary px-3">
+                        <i class="bi bi-key me-1"></i> Change Password
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
